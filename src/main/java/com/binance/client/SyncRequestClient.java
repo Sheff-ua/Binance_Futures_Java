@@ -91,6 +91,13 @@ public interface SyncRequestClient {
     List<AggregateTrade> getAggregateTrades(String symbol, Long fromId, Long startTime, Long endTime, Integer limit);
 
     /**
+     * Get compressed, aggregate trades.
+     *
+     * @return Aggregate trades.
+     */
+    List<AggregateTrade> getAggregateTradesSpot(String symbol, Long fromId, Long startTime, Long endTime, Integer limit);
+
+    /**
      * Get kline/candlestick bars for a symbol.
      *
      * @return Kline/candlestick bars for a symbol.

@@ -1,4 +1,4 @@
-package com.binance.client.examples.constants;
+package ua.dnepr.valera.crypto.bot;
 
 public class PrivateConfig {
 

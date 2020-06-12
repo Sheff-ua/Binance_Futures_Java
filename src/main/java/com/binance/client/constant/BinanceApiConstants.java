@@ -12,6 +12,7 @@ public class BinanceApiConstants {
      */
     public static final String API_BASE_URL = "https://fapi.binance.com";
 
+
     /**
      * Streaming API base URL.
      */

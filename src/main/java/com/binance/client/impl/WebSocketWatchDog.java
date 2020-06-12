@@ -27,7 +27,7 @@ class WebSocketWatchDog {
                     if (options.isAutoReconnect()) {
                         long ts = System.currentTimeMillis() - connection.getLastReceivedTime();
                         if (ts > options.getReceiveLimitMs()) {
-                            log.warn("[Sub][" + connection.getConnectionId() + "] No response from server");
+                            log.warn("[Sub][" + connection.getConnectionId() + "] No response from server in {} sec", (options.getReceiveLimitMs()/1000));
                             connection.reConnect(options.getConnectionDelayOnFailure());
                         }
                     }

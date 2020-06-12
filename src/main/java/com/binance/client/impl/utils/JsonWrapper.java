@@ -42,10 +42,10 @@ public class JsonWrapper {
     }
 
     private void checkMandatoryField(String name) {
-        if (!json.containsKey(name)) {
-            throw new BinanceApiException(BinanceApiException.RUNTIME_ERROR,
-                    "[Json] Get json item field: " + name + " does not exist");
-        }
+//        if (!json.containsKey(name)) { // FIXME
+//            throw new BinanceApiException(BinanceApiException.RUNTIME_ERROR,
+//                    "[Json] Get json item field: " + name + " does not exist");
+//        }
     }
 
     public boolean containKey(String name) {

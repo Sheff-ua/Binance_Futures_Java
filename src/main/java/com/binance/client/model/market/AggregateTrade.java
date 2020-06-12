@@ -7,6 +7,20 @@ import java.math.BigDecimal;
 
 public class AggregateTrade {
 
+    public AggregateTrade() {
+
+    }
+
+    public AggregateTrade(Long id, BigDecimal price, BigDecimal qty, Long firstId, Long lastId, Long time, Boolean isBuyerMaker) {
+        this.id = id;
+        this.price = price;
+        this.qty = qty;
+        this.firstId = firstId;
+        this.lastId = lastId;
+        this.time = time;
+        this.isBuyerMaker = isBuyerMaker;
+    }
+
     private Long id;
 
     private BigDecimal price;
@@ -69,11 +83,11 @@ public class AggregateTrade {
         this.time = time;
     }
 
-    public Boolean getIsBuyerMaker() {
+    public Boolean isBuyerMaker() {
         return isBuyerMaker;
     }
 
-    public void setIsBuyerMaker(Boolean isBuyerMaker) {
+    public void setBuyerMaker(Boolean isBuyerMaker) {
         this.isBuyerMaker = isBuyerMaker;
     }
 

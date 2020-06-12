@@ -31,8 +31,13 @@ class RestApiRequestImpl {
         this.serverUrl = options.getUrl();
     }
 
+    private Request createRequestByGetSpot(String serverUrlCustom, String address, UrlParamsBuilder builder) {
+        //System.out.println(serverUrl);
+        return createRequestByGet(serverUrlCustom, address, builder);
+    }
+
     private Request createRequestByGet(String address, UrlParamsBuilder builder) {
-        System.out.println(serverUrl);
+        //System.out.println(serverUrl);
         return createRequestByGet(serverUrl, address, builder);
     }
 
@@ -42,7 +47,7 @@ class RestApiRequestImpl {
 
     private Request createRequest(String url, String address, UrlParamsBuilder builder) {
         String requestUrl = url + address;
-        System.out.print(requestUrl);
+        //System.out.print(requestUrl);
         if (builder != null) {
             if (builder.hasPostParam()) {
                 return new Request.Builder().url(requestUrl).post(builder.buildPostBody())
@@ -332,7 +337,38 @@ class RestApiRequestImpl {
                 element.setFirstId(item.getLong("f"));
                 element.setLastId(item.getLong("l"));
                 element.setTime(item.getLong("T"));
-                element.setIsBuyerMaker(item.getBoolean("m"));
+                element.setBuyerMaker(item.getBoolean("m"));
+                result.add(element);
+            });
+
+            return result;
+        });
+        return request;
+    }
+
+    RestApiRequest<List<AggregateTrade>> getAggregateTradesSpot(String symbol, Long fromId,
+                                                            Long startTime, Long endTime, Integer limit) {
+        RestApiRequest<List<AggregateTrade>> request = new RestApiRequest<>();
+        UrlParamsBuilder builder = UrlParamsBuilder.build()
+                .putToUrl("symbol", symbol)
+                .putToUrl("fromId", fromId)
+                .putToUrl("startTime", startTime)
+                .putToUrl("endTime", endTime)
+                .putToUrl("limit", limit);
+        request.request = createRequestByGetSpot("https://api.binance.com", "/api/v3/aggTrades", builder); // FIXME extract constant
+
+        request.jsonParser = (jsonWrapper -> {
+            List<AggregateTrade> result = new LinkedList<>();
+            JsonWrapperArray dataArray = jsonWrapper.getJsonArray("data");
+            dataArray.forEach((item) -> {
+                AggregateTrade element = new AggregateTrade();
+                element.setId(item.getLong("a"));
+                element.setPrice(item.getBigDecimal("p"));
+                element.setQty(item.getBigDecimal("q"));
+                element.setFirstId(item.getLong("f"));
+                element.setLastId(item.getLong("l"));
+                element.setTime(item.getLong("T"));
+                element.setBuyerMaker(item.getBoolean("m"));
                 result.add(element);
             });
 
@@ -1156,10 +1192,11 @@ class RestApiRequestImpl {
         UrlParamsBuilder builder = UrlParamsBuilder.build()
                 .putToUrl("listenKey", listenKey);
 
-        request.request = createRequestByPutWithSignature("/fapi/v1/listenKey", builder);
+        //request.request = createRequestByPutWithSignature("/fapi/v1/listenKey", builder);
+        request.request = createRequestByPostWithSignature("/fapi/v1/listenKey", builder);
 
         request.jsonParser = (jsonWrapper -> {
-            String result = "Ok";
+            String result = jsonWrapper.getString("listenKey");
             return result;
         });
         return request;

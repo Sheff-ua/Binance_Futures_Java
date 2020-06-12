@@ -1,5 +1,6 @@
 package com.binance.client.impl;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,9 +31,9 @@ class WebsocketRequestImpl {
     WebsocketRequestImpl() {
     }
 
-    WebsocketRequest<AggregateTradeEvent> subscribeAggregateTradeEvent(String symbol,
-            SubscriptionListener<AggregateTradeEvent> subscriptionListener,
+    WebsocketRequest<AggregateTradeEvent> subscribeAggregateTradeEvent(String symbol, SubscriptionListener<AggregateTradeEvent> subscriptionListener,
             SubscriptionErrorHandler errorHandler) {
+
         InputChecker.checker()
                 .shouldNotNull(symbol, "symbol")
                 .shouldNotNull(subscriptionListener, "listener");
@@ -446,9 +447,9 @@ class WebsocketRequestImpl {
         return request;
     }
 
-    WebsocketRequest<UserDataUpdateEvent> subscribeUserDataEvent(String listenKey,
-            SubscriptionListener<UserDataUpdateEvent> subscriptionListener,
+    WebsocketRequest<UserDataUpdateEvent> subscribeUserDataEvent(String listenKey, SubscriptionListener<UserDataUpdateEvent> subscriptionListener,
             SubscriptionErrorHandler errorHandler) {
+
         InputChecker.checker()
                 .shouldNotNull(listenKey, "listenKey")
                 .shouldNotNull(subscriptionListener, "listener");
@@ -460,7 +461,7 @@ class WebsocketRequestImpl {
             UserDataUpdateEvent result = new UserDataUpdateEvent();
             result.setEventType(jsonWrapper.getString("e"));
             result.setEventTime(jsonWrapper.getLong("E"));
-            result.setTransactionTime(jsonWrapper.getLong("T"));
+            result.setTransactionTime(jsonWrapper.getLongOrDefault("T", 0L));
 
             if(jsonWrapper.getString("e").equals("ACCOUNT_UPDATE")) {
                 AccountUpdate accountUpdate = new AccountUpdate();
@@ -480,10 +481,10 @@ class WebsocketRequestImpl {
                 datalist.forEach(item -> {
                     PositionUpdate position = new PositionUpdate();
                     position.setSymbol(item.getString("s"));
-                    position.setAmount(item.getBigDecimal("pa"));
-                    position.setEntryPrice(item.getBigDecimal("ep"));
-                    position.setPreFee(item.getBigDecimal("cr"));
-                    position.setUnrealizedPnl(item.getBigDecimal("up"));
+                    position.setAmount(item.getBigDecimalOrDefault("pa", BigDecimal.ZERO));
+                    position.setEntryPrice(item.getBigDecimalOrDefault("ep", BigDecimal.ZERO));
+                    position.setPreFee(item.getBigDecimalOrDefault("cr", BigDecimal.ZERO));
+                    position.setUnrealizedPnl(item.getBigDecimalOrDefault("up", BigDecimal.ZERO));
                     positionList.add(position);
                 });
                 accountUpdate.setPositions(positionList);
@@ -508,8 +509,8 @@ class WebsocketRequestImpl {
                 orderUpdate.setLastFilledQty(jsondata.getBigDecimal("l"));
                 orderUpdate.setCumulativeFilledQty(jsondata.getBigDecimal("z"));
                 orderUpdate.setLastFilledPrice(jsondata.getBigDecimal("L"));
-                orderUpdate.setCommissionAsset(jsondata.getString("N"));
-                orderUpdate.setCommissionAmount(jsondata.getLong("n"));
+                orderUpdate.setCommissionAsset(jsondata.getStringOrDefault("N", "0")); // changed to default
+                orderUpdate.setCommissionAmount(jsondata.getBigDecimalOrDefault("n", BigDecimal.ZERO));
                 orderUpdate.setOrderTradeTime(jsondata.getLong("T"));
                 orderUpdate.setTradeID(jsondata.getLong("t"));
                 orderUpdate.setBidsNotional(jsondata.getBigDecimal("b"));

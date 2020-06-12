@@ -8,34 +8,24 @@ import java.net.URI;
  */
 public class SubscriptionOptions {
 
-    private String uri = "wss://api.binance.pro/";
     private boolean isAutoReconnect = true;
     private int receiveLimitMs = 60_000;
     private int connectionDelayOnFailure = 15;
 
+
+    public SubscriptionOptions(boolean isAutoReconnect, int receiveLimitMs, int connectionDelayOnFailure) {
+        this.isAutoReconnect = isAutoReconnect;
+        this.receiveLimitMs = receiveLimitMs;
+        this.connectionDelayOnFailure = connectionDelayOnFailure;
+    }
+
     public SubscriptionOptions(SubscriptionOptions options) {
-        this.uri = options.uri;
         this.isAutoReconnect = options.isAutoReconnect;
         this.receiveLimitMs = options.receiveLimitMs;
         this.connectionDelayOnFailure = options.connectionDelayOnFailure;
     }
 
     public SubscriptionOptions() {
-    }
-
-    /**
-     * Set the URI for subscription.
-     *
-     * @param uri The URI name like "wss://api.binance.pro".
-     */
-    public void setUri(String uri) {
-        try {
-            URI u = new URI(uri);
-            this.uri = u.toString();
-        } catch (Exception e) {
-            throw new BinanceApiException(BinanceApiException.INPUT_ERROR, "The URI is incorrect: " + e.getMessage());
-        }
-        this.uri = uri;
     }
 
     /**
@@ -89,7 +79,4 @@ public class SubscriptionOptions {
         return connectionDelayOnFailure;
     }
 
-    public String getUri() {
-        return uri;
-    }
 }

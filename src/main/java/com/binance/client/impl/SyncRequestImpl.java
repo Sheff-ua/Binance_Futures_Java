@@ -43,7 +43,13 @@ public class SyncRequestImpl implements SyncRequestClient {
             Long endTime, Integer limit) {
         return RestApiInvoker.callSync(requestImpl.getAggregateTrades(symbol, fromId, startTime, endTime, limit));
     }
-    
+
+    @Override
+    public List<AggregateTrade> getAggregateTradesSpot(String symbol, Long fromId, Long startTime,
+                                                   Long endTime, Integer limit) {
+        return RestApiInvoker.callSync(requestImpl.getAggregateTradesSpot(symbol, fromId, startTime, endTime, limit));
+    }
+
     @Override
     public List<Candlestick> getCandlestick(String symbol, CandlestickInterval interval, Long startTime, 
             Long endTime, Integer limit) {

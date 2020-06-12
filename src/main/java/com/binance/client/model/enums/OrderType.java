@@ -13,6 +13,13 @@ public enum OrderType {
     STOP_MARKET("STOP_MARKET"),
     TAKE_RPOFIT("TAKE_RPOFIT"),
     TAKE_RPOFIT_MARKET("TAKE_RPOFIT_MARKET"),
+
+    // absent
+    STOP_LOSS("STOP_LOSS"),
+    STOP_LOSS_LIMIT("STOP_LOSS_LIMIT"),
+    TAKE_PROFIT_LIMIT("TAKE_PROFIT_LIMIT"),
+    LIMIT_MAKER("LIMIT_MAKER"),
+    LIQUIDATION("LIQUIDATION"),
     INVALID(null);
 
   private final String code;
