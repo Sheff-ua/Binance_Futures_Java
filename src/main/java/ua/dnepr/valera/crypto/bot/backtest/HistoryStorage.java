@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 
 import static ua.dnepr.valera.crypto.bot.Utils.parseDate;
 
-public class HistoryPlayer {
+public class HistoryStorage {
 
     private static final String COMMA_DELIMITER = ",";
 
@@ -31,7 +31,7 @@ public class HistoryPlayer {
     private long currHistoryItem = 0;
     private long lastPercent;
 
-    public HistoryPlayer(String symbol, boolean reduced) {
+    public HistoryStorage(String symbol, boolean reduced) {
         this.symbol = symbol;
         this.reduced = reduced;
     }
@@ -69,7 +69,7 @@ public class HistoryPlayer {
         long loadEnd = System.currentTimeMillis();
         System.out.println("History Load finished in " + ((loadEnd - loadStart) / 1000) +  " sec.");
 
-        System.out.println("HistoryPlayer: Loaded " + history.size() + " records of history.");
+        System.out.println("HistoryStorage: Loaded " + history.size() + " records of history.");
         iterator = history.iterator();
         historySize = history.size();
     }

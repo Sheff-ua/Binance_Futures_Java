@@ -16,7 +16,7 @@ public class Exchange implements IExchange {
 
     private List<PriceListener> priceListeners = new ArrayList<>();
     private Map<Long, OrderUpdateListener> orderUpdateListeners = new HashMap<>(); // clientId -> client
-    private HistoryPlayer historyPlayer;
+    private HistoryStorage historyStorage;
     private long iterationStep = 0;
 
 
@@ -25,8 +25,8 @@ public class Exchange implements IExchange {
 
     public Exchange(String from, String to, String symbol) {
         this.symbol = symbol;
-        historyPlayer = new HistoryPlayer(symbol, true); // FIXME reduced history is used
-        historyPlayer.init(from, to);
+        historyStorage = new HistoryStorage(symbol, true); // FIXME reduced history is used
+        historyStorage.init(from, to);
     }
 
     public BigDecimal getlastPrice () {
@@ -36,15 +36,15 @@ public class Exchange implements IExchange {
     // 1) check and execute orders, and fire OrderUpdate events if executed
     // 2) fire NewPrice event
     public boolean processNext() {
-        if (!historyPlayer.hasNext()) {
+        if (!historyStorage.hasNext()) {
             return false;
         }
-        currAggregateTrade = historyPlayer.getNext();
+        currAggregateTrade = historyStorage.getNext();
         iterationStep++;
 
         if (prevAggregateTrade == null ) {
             prevAggregateTrade = currAggregateTrade;
-            return historyPlayer.hasNext();
+            return historyStorage.hasNext();
         }
 
         // 1)
@@ -163,7 +163,7 @@ public class Exchange implements IExchange {
         iterationStep = 0;
         prevAggregateTrade = null;
 
-        historyPlayer.rewind();
+        historyStorage.rewind();
     }
 
 }
