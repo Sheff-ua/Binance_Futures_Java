@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,11 +26,8 @@ public class HistoryStorage {
     private String symbol;
     private boolean reduced;
 
-    private List<AggregateTradeMini> history = new LinkedList<>();
-    private Iterator<AggregateTradeMini> iterator;
-    private long historySize = 0;
-    private long currHistoryItem = 0;
-    private long lastPercent;
+    private List<AggregateTradeMini> history = new ArrayList<>();
+    private int historySize = 0;
 
     public HistoryStorage(String symbol, boolean reduced) {
         this.symbol = symbol;
@@ -70,7 +68,6 @@ public class HistoryStorage {
         System.out.println("History Load finished in " + ((loadEnd - loadStart) / 1000) +  " sec.");
 
         System.out.println("HistoryStorage: Loaded " + history.size() + " records of history.");
-        iterator = history.iterator();
         historySize = history.size();
     }
 
@@ -88,13 +85,6 @@ public class HistoryStorage {
                 }
 
                 String[] splittedLine = line.split(COMMA_DELIMITER);
-                //id,price,qty,firstId,lastId,time,isBuyerMaker
-                //73698589,8784.05,0.032,100648193,100648194,1588204805449,2020-04-30T00:00:05.449Z,true
-//                AggregateTrade aggregateTrade = new AggregateTrade(Long.valueOf(splittedLine[0]), new BigDecimal(splittedLine[1]), new BigDecimal(splittedLine[2]),
-//                        Long.valueOf(splittedLine[3]), Long.valueOf(splittedLine[4]), Long.valueOf(splittedLine[5]), Boolean.valueOf(splittedLine[7]));
-
-//                AggregateTrade aggregateTrade = new AggregateTrade(Long.valueOf(splittedLine[0]), new BigDecimal(splittedLine[1]), new BigDecimal(splittedLine[2]),
-//                        null, null, Long.valueOf(splittedLine[5]), Boolean.valueOf(splittedLine[7]));
 
                 AggregateTradeMini aggregateTrade = new AggregateTradeMini(new BigDecimal(splittedLine[1]), reduced ? Long.valueOf(splittedLine[3]) : Long.valueOf(splittedLine[5]));
                 aggregateTrades.add(aggregateTrade);
@@ -105,28 +95,16 @@ public class HistoryStorage {
         return aggregateTrades;
     }
 
-    public AggregateTradeMini getNext() {
-        currHistoryItem++;
-        long currPercent = (long)(currHistoryItem * 1.00 / historySize * 100);
-
-        if (currPercent - lastPercent >= 1) {
-            lastPercent = currPercent;
-            //System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + String.format("  Current percent: %2d", lastPercent) + " %"); // FIXME uncomment for batch Bot mode
-        }
-
-        return iterator.next();
+    public int getHistorySize() {
+        return historySize;
     }
 
-
-
-    public boolean hasNext() {
-        return iterator.hasNext();
+    public AggregateTradeMini getStep(int step) {
+        return history.get(step);
     }
 
-    public void rewind() {
-        currHistoryItem = 0;
-        lastPercent =0;
-        iterator = history.iterator();
+    public int calcPercent(int step) {
+        return  (int)(step * 1.00 / historySize * 100);
     }
 
 }

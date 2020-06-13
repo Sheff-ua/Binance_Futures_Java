@@ -191,8 +191,7 @@ public class HistoricalDataSpotMultiThreadRetriever {
                 aggTradesCallables.add(aggTradesCallable);
             }
 
-            ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT_SPOT);
-
+            ExecutorService executor = Executors.newFixedThreadPool(isSpot ? THREAD_COUNT_SPOT : THREAD_COUNT_FEATUERES);
 
             long id = 1;
             if (proceedId > 1) {

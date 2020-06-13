@@ -1,15 +1,18 @@
 package ua.dnepr.valera.crypto.bot.backtest;
 
+import ua.dnepr.valera.crypto.bot.ExchangeCallable;
 import ua.dnepr.valera.crypto.bot.Utils;
-import ua.dnepr.valera.crypto.bot.model.Bot;
+import ua.dnepr.valera.crypto.bot.model.Bot2;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class Simulator {
+
+    private HashMap<Long, List<Long>> perfTest = new HashMap<>();
+    private static int EXCHANGE_THREAD_COUNT = 1; // FIXME detect optimal value, 10 looks good for now
 
     private static Long clientIdSequence = 1L;
     private static BigDecimal initialBalancePerBot = new BigDecimal("1000");
@@ -25,94 +28,64 @@ public class Simulator {
         String from = "2019-09-09"; String to = "2020-06-09"; String symbol = "BTCUSDT";
 
 
-        Exchange exchange = new Exchange(from, to, symbol);
-        System.out.println("Exchange created");
+        HistoryStorage historyStorage = new HistoryStorage(symbol, true); // FIXME reduced history is used
+        historyStorage.init(from, to);
+
+        System.out.println("HistoryStorage created");
 
         /*============================================*/
 
-//        // while for for
-//        BigDecimal initialTakeProfit = new BigDecimal("0.1");
-//        BigDecimal initialStopLoss = new BigDecimal("0.2");
-////        BigDecimal initialTakeProfit = new BigDecimal("0.5");
-////        BigDecimal initialStopLoss = new BigDecimal("2");
-//        int count = 0;
-//        List<Bot> botList = new ArrayList<>();
-//        for (int i = 0; i <= 100; i = i + 5) { // 10 gives 1.00 range // 100 gives 10.00 range
-//            for (int j = 0; j <= 200; j = j + 10) { // 100 gives 10.00 range // 200 gives 20.00 range
-//                // Bot created. Take Profit: 0.10, Stop Loss: 0.20
-//                // Bot created. Take Profit: 1.10, Stop Loss: 10.20
-//                count++;
-//                Bot bot = new Bot(clientIdSequence++, exchange, symbol, initialBalancePerBot);
-//                bot.setTakeProfitPercent(initialTakeProfit.add(new BigDecimal(i).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
-//                bot.setStopLossPercent(initialStopLoss.add(new BigDecimal(j).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
-//                System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + " Bot created. Take Profit: " + bot.getTakeProfitPercent() + ", Stop Loss: " + bot.getStopLossPercent());
-//
-//                exchange.addOrderUpdateListener(bot.getClientId(), bot);
-//                exchange.addPriceListener(bot);
-//
-//                botList.add(bot);
-//            }
-//        }
-//
-//        System.out.println("Start Simulation...");
-//        long simStart = System.currentTimeMillis();
-//
-//        while (exchange.processNext()) {
-//            // Main work is in exchange.processNext()
-//        }
-//
-//        for (Bot bot : botList) {
-//            statisticsParamsDTOList.add(new StatisticsParamsDTO(bot.getStatistics(), bot.getTakeProfitPercent(), bot.getStopLossPercent()));
-//        }
-//        long simEnd = System.currentTimeMillis();
-//        System.out.println("Simulation finished in " + ((simEnd - simStart) / 1000) +  " sec.");
-//        exchange.reset();
+        System.out.println("Start Simulation...");
+        long simStart = System.currentTimeMillis();
 
-        /*============================================*/
-
-        // for for while
-        BigDecimal initialTakeProfit = new BigDecimal("0.1");
-        BigDecimal initialStopLoss = new BigDecimal("0.2");
-//        BigDecimal initialTakeProfit = new BigDecimal("0.5");
-//        BigDecimal initialStopLoss = new BigDecimal("2");
-        int count = 0;
+        List<Bot2> bot2List = new ArrayList<>();
+        BigDecimal initialTakeProfit = new BigDecimal("0.3");
+        BigDecimal initialStopLoss = new BigDecimal("2"); // TODO from which value ?
         for (int i = 0; i <= 100; i = i + 5) { // 10 gives 1.00 range // 100 gives 10.00 range
-            long takeProfitStart = System.currentTimeMillis();
-            for (int j = 0; j <= 200; j = j+10) { // 100 gives 10.00 range // 200 gives 20.00 range
-                // Bot created. Take Profit: 0.10, Stop Loss: 0.20
-                // Bot created. Take Profit: 1.10, Stop Loss: 10.20
-                count++;
-                Bot bot = new Bot(clientIdSequence++, exchange, symbol, initialBalancePerBot);
-                bot.setTakeProfitPercent(initialTakeProfit.add(new BigDecimal(i).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
-                bot.setStopLossPercent(initialStopLoss.add(new BigDecimal(j).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
-                System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + " Bot created. Take Profit: " + bot.getTakeProfitPercent() + ", Stop Loss: " + bot.getStopLossPercent());
-
-                exchange.addOrderUpdateListener(bot.getClientId(), bot);
-                exchange.addPriceListener(bot);
-
-                //System.out.println("Start Simulation...");
-                long simStart = System.currentTimeMillis();
-
-                while (exchange.processNext()) {
-                    // Main work is in exchange.processNext()
-                }
-
-                //System.out.println(bot.getStatistics());
-                //System.out.println("Balance: " + bot.getBalance());
-
-//                System.out.println("Unclosed positions:");
-//                for (MyPosition position : bot.getUnclosedPositions()) {
-//                    System.out.println(position.getSide() + " Position {unRealizedPNL: " + position.calcUnRealizedPNL(exchange.getlastPrice()) + "}");
-//                }
-
-                statisticsParamsDTOList.add(new StatisticsParamsDTO(bot.getStatistics(), bot.getTakeProfitPercent(), bot.getStopLossPercent()));
-                long simEnd = System.currentTimeMillis();
-                System.out.println("Simulation finished in " + ((simEnd - simStart) / 1000) +  " sec.");
-                exchange.reset();
+            for (int j = 0; j <= 200; j = j + 10) { // 100 gives 10.00 range // 200 gives 20.00 range
+                Bot2 bot2 = new Bot2(clientIdSequence++, symbol, initialBalancePerBot);
+                bot2.setTakeProfitPercent(initialTakeProfit.add(new BigDecimal(i).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
+                bot2.setStopLossPercent(initialStopLoss.add(new BigDecimal(j).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
+                System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + " Bot2 created. Take Profit: " + bot2.getTakeProfitPercent() + ", Stop Loss: " + bot2.getStopLossPercent());
+                bot2List.add(bot2);
             }
-            long takeProfitEnd = System.currentTimeMillis();
-            System.out.println("Single Take profit Simulation finished in " + ((takeProfitEnd - takeProfitStart) / 1000) +  " sec.");
         }
+
+        List<Exchange> exchangeList = new ArrayList<>();
+        for (int i = 0; i < EXCHANGE_THREAD_COUNT; i++) {
+            Exchange exchange = new Exchange(symbol);
+            exchange.setHistoryStorage(historyStorage);
+            exchangeList.add(exchange);
+        }
+        for (int i = 0; i < bot2List.size(); i++) {
+            int exchangeIndex = i % EXCHANGE_THREAD_COUNT;
+            Exchange exchange = exchangeList.get(exchangeIndex);
+            Bot2 bot2 = bot2List.get(i);
+            bot2.setExchange(exchange);
+            exchange.addOrderUpdateListener(bot2.getClientId(), bot2);
+            exchange.addPriceListener(bot2);
+            // FIXME check that one bot2 doesn't belong to 2 or more exchanges !!!
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(EXCHANGE_THREAD_COUNT);
+        List<Future<List<StatisticsParamsDTO>>> futures = new ArrayList<>();
+        for (int i = 0; i < EXCHANGE_THREAD_COUNT; i++) {
+            Future<List<StatisticsParamsDTO>> future = executor.submit(new ExchangeCallable(exchangeList.get(i)));
+            futures.add(future);
+        }
+
+        for (Future<List<StatisticsParamsDTO>> future : futures) {
+            try {
+                statisticsParamsDTOList.addAll(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+        long simEnd = System.currentTimeMillis();
+        System.out.println("Simulation finished in " + ((simEnd - simStart) / 1000) +  " sec.");
 
 
         /*============================================*/
@@ -123,13 +96,8 @@ public class Simulator {
         }
 
         long mainEnd = System.currentTimeMillis();
-        System.out.println("All {"+ count + "} Simulations finished in " + ((mainEnd - mainStart) / 1000) +  " sec.");
-
-//        try {
-//            Thread.sleep(60 * 60 * 1000);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        System.out.println("All {"+ bot2List.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) +  " sec.");
+        executor.shutdown();
     }
 
 

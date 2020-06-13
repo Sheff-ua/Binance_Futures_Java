@@ -109,4 +109,19 @@ public class MyOrder {
     public int hashCode() {
         return Objects.hash(clientOrderId);
     }
+
+    @Override
+    public String toString() {
+        return "MyOrder{" +
+                "clientOrderId='" + clientOrderId + '\'' +
+                ", amount=" + amount +
+                ", price=" + price +
+                ", reduceOnly=" + reduceOnly +
+                ", side=" + side +
+                ", status=" + status +
+                ", symbol='" + symbol + '\'' +
+                ", type=" + type +
+                ", updateTime=" + updateTime +
+                '}';
+    }
 }
