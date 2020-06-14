@@ -11,10 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static ua.dnepr.valera.crypto.bot.Utils.parseDate;
@@ -69,6 +66,8 @@ public class HistoryStorage {
 
         System.out.println("HistoryStorage: Loaded " + history.size() + " records of history.");
         historySize = history.size();
+        history = Collections.synchronizedList(history);
+        System.out.println("as");
     }
 
     private List<AggregateTradeMini> loadDataFromCSV(Path path) {

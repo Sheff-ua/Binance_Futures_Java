@@ -18,7 +18,8 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     public static final int AMOUNT_PRECISION_BTC = 3;
     public static final BigDecimal MIN_ORDER_AMOUNT = new BigDecimal("0.001");
 
-    private static Long orderIdSequence = 1L;
+    private static long orderIdSequence = 1L;
+    private static final Object orderIdSequenceLock = new Object();
 
     private final Long clientId;
     private IExchange exchange;
@@ -35,13 +36,20 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     private BigDecimal stopLossPercent = new BigDecimal("2");
 
     private List<String> shortSideOrderIds = new ArrayList<>();
-    private List<String> longSideOrderIds = new ArrayList<>();
+    private List<Long> longSideOrderIds = new ArrayList<>();
 
     public Bot1(Long clientId, String symbol, BigDecimal balance) {
         this.clientId = clientId;
         this.symbol = symbol;
         this.balance = balance;
         statistics = new Statistics();
+    }
+
+    private long getNextOrderId() {
+        synchronized (orderIdSequenceLock) {
+            orderIdSequence++;
+        }
+        return orderIdSequence;
     }
 
     public void setExchange(IExchange exchange) {
@@ -199,7 +207,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
         BigDecimal entryPriceMinusOnePercent = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()));
         BigDecimal amount = halfOfBalance.divide(entryPriceMinusOnePercent, AMOUNT_PRECISION_BTC, RoundingMode.DOWN); // 50%
 
-        MyOrder order = new MyOrder(String.valueOf(orderIdSequence++), amount,
+        MyOrder order = new MyOrder(getNextOrderId(), amount,
                 MyPosition.Side.LONG.equals(position.getSide())
                         ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()))
                         : position.getEntryPrice().add(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice())),
@@ -211,7 +219,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     }
 
     private MyOrder createTakeProfitOrder(MyPosition position) {
-        MyOrder order = new MyOrder(String.valueOf(orderIdSequence++), position.getAmount(),
+        MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(),
                 MyPosition.Side.LONG.equals(position.getSide())
                     ? position.getEntryPrice().add(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()))
                     : position.getEntryPrice().subtract(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice())), // TODO separate takes for Long \ Short
@@ -221,7 +229,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     }
 
     private MyOrder createStopLossOrder(MyPosition position) {
-        MyOrder order = new MyOrder(String.valueOf(orderIdSequence++), position.getAmount(),
+        MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(),
                 MyPosition.Side.LONG.equals(position.getSide())
                 ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()))  // TODO separate takes for Long \ Short
                 : position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice())),
@@ -231,7 +239,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     }
 
     @Override
-    public void onNewPrice(String symbol, BigDecimal price, Boolean isSell) {
+    public void onNewPrice(String symbol, BigDecimal price, long time, Boolean isSell) {
         if (longPosition == null) { // TODO some additional condition!
 
 //            BigDecimal halfOfBalance = balance.divide(new BigDecimal("2"), RoundingMode.DOWN); // FIXME Full or Half
@@ -242,7 +250,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
                 return; // No Money !!!
             }
 
-            MyOrder initialMarketOrder = new MyOrder(String.valueOf(orderIdSequence++),
+            MyOrder initialMarketOrder = new MyOrder(getNextOrderId(),
                     amount, price, false, MyOrder.Side.BUY, MyOrder.Status.NEW,
                     symbol, MyOrder.Type.MARKET, null);
 
@@ -270,7 +278,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
                 return MyPosition.PositionChange.INCREASE;
             }
             if (position != null && position.isOpen() && MyOrder.Side.SELL.equals(updatedOrder.getSide())) {
-                if (position.getAmount().equals(updatedOrder.getAmount())) {
+                if (position.getAmount().compareTo(updatedOrder.getAmount()) == 0) {
                     return MyPosition.PositionChange.CLOSE;
                 } else {
                     return MyPosition.PositionChange.DECREASE;
@@ -285,7 +293,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
                 return MyPosition.PositionChange.INCREASE;
             }
             if (position != null && position.isOpen() && MyOrder.Side.BUY.equals(updatedOrder.getSide())) {
-                if (position.getAmount().equals(updatedOrder.getAmount())) {
+                if (position.getAmount().compareTo(updatedOrder.getAmount()) == 0) {
                     return MyPosition.PositionChange.CLOSE;
                 } else {
                     return MyPosition.PositionChange.DECREASE;

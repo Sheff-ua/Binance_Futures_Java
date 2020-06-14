@@ -44,9 +44,6 @@ public class Exchange implements IExchange {
             return false;
         }
 
-//        if (!historyStorage.hasNext()) {
-//            return false;
-//        }
         currAggregateTrade = historyStorage.getStep(historyStep);
         historyStep++;
 
@@ -58,16 +55,18 @@ public class Exchange implements IExchange {
         // 1)
         boolean priceUp = currAggregateTrade.getPrice().compareTo(prevAggregateTrade.getPrice()) > 0;
 
-        for (Map.Entry<Long, List<MyOrder>> currentOrdersEntry : currentOrders.entrySet()) {
-            Iterator<MyOrder> clientOrderIt = new ArrayList<>(currentOrdersEntry.getValue()).iterator();
-            while (clientOrderIt.hasNext()) {
-                MyOrder clientOrder = clientOrderIt.next();
+        for (Long clientId : currentOrders.keySet()) {
+            List<MyOrder> clientOrders = new ArrayList<>(currentOrders.get(clientId)); // new collection created
+            for (MyOrder clientOrder : clientOrders) {
+                if (clientOrder.getStatus().equals(MyOrder.Status.CANCELLED)) {
+                    continue;
+                }
                 if (priceUp) {
                     if ((MyOrder.Type.LIMIT.equals(clientOrder.getType()) && MyOrder.Side.SELL.equals(clientOrder.getSide()))
                             || (MyOrder.Type.STOP_MARKET.equals(clientOrder.getType()) && MyOrder.Side.BUY.equals(clientOrder.getSide()))) {
                         if (prevAggregateTrade.getPrice().compareTo(clientOrder.getPrice()) < 0 && currAggregateTrade.getPrice().compareTo(clientOrder.getPrice()) >= 0) {
                             // order executed at clientOrder.getPrice()
-                            fireOrderUpdate(currentOrdersEntry.getKey(), clientOrder, clientOrder.getPrice(), currAggregateTrade.getTime());
+                            fireOrderUpdate(clientId, clientOrder, clientOrder.getPrice(), currAggregateTrade.getTime());
                         }
                     }
                 } else { // price down
@@ -75,13 +74,13 @@ public class Exchange implements IExchange {
                             || (MyOrder.Type.STOP_MARKET.equals(clientOrder.getType()) && MyOrder.Side.SELL.equals(clientOrder.getSide()))) {
                         if (prevAggregateTrade.getPrice().compareTo(clientOrder.getPrice()) > 0 && currAggregateTrade.getPrice().compareTo(clientOrder.getPrice()) <= 0) {
                             // order executed at clientOrder.getPrice()
-                            fireOrderUpdate(currentOrdersEntry.getKey(), clientOrder, clientOrder.getPrice(), currAggregateTrade.getTime());
+                            fireOrderUpdate(clientId, clientOrder, clientOrder.getPrice(), currAggregateTrade.getTime());
                         }
                     }
                 }
                 if (MyOrder.Type.MARKET.equals(clientOrder.getType())) {
                     // order executed at currAggregateTrade.getPrice()
-                    fireOrderUpdate(currentOrdersEntry.getKey(), clientOrder, currAggregateTrade.getPrice(), currAggregateTrade.getTime());
+                    fireOrderUpdate(clientId, clientOrder, currAggregateTrade.getPrice(), currAggregateTrade.getTime());
                 }
             }
         }
@@ -112,7 +111,7 @@ public class Exchange implements IExchange {
 
     private void fireNewPrice(AggregateTradeMini aggregateTrade) {
         for (PriceListener priceListener : priceListeners) {
-            priceListener.onNewPrice(this.symbol, aggregateTrade.getPrice(), null);
+            priceListener.onNewPrice(this.symbol, aggregateTrade.getPrice(), aggregateTrade.getTime(), null);
         }
     }
 
@@ -121,7 +120,9 @@ public class Exchange implements IExchange {
         Iterator<MyOrder> clientOrdersIt = clientOrders.iterator();
 
         while(clientOrdersIt.hasNext()) { // TODO replace with #replaceIf
-            if (ordersToCancel.contains(clientOrdersIt.next())) {
+            MyOrder clientOrder = clientOrdersIt.next();
+            if (ordersToCancel.contains(clientOrder)) {
+                clientOrder.setStatus(MyOrder.Status.CANCELLED);
                 clientOrdersIt.remove();
             }
         }
@@ -142,7 +143,13 @@ public class Exchange implements IExchange {
             clientOrders = new ArrayList<>();
             currentOrders.put(clientId, clientOrders);
         }
-        clientOrders.add(myOrder);
+        if (!clientOrders.contains(myOrder)) {
+            clientOrders.add(myOrder);
+        } else {
+            System.out.println("Unknown situation! WTF!!!");
+            //throw new IllegalStateException("Unknown situation! Duplicate order!");
+        }
+
     }
 
     public void addPriceListener(PriceListener priceListener) {

@@ -16,7 +16,10 @@ public class Utils {
         return formatter8.format(Instant.ofEpochMilli(timeInMillis).atZone(ZoneOffset.UTC));
     }
 
-    public static synchronized String formatDateTimeUTCForPrint(long timeInMillis) {
+    public static synchronized String formatDateTimeUTCForPrint(Long timeInMillis) {
+        if (timeInMillis == null) {
+            return "";
+        }
         return formatter8.format(Instant.ofEpochMilli(timeInMillis).atZone(ZoneOffset.UTC)).replaceAll("T", " ").replaceAll("Z", "");
     }
 

@@ -6,6 +6,6 @@ import java.math.BigDecimal;
 
 public interface PriceListener {
 
-    void onNewPrice(String symbol, BigDecimal price, Boolean isSell);
+    void onNewPrice(String symbol, BigDecimal price, long time, Boolean isSell);
 
 }

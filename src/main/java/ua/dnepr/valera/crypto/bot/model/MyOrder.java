@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public class MyOrder {
 
-    private String clientOrderId;
+    private Long clientOrderId; // TODO String for real Exchange
 
     private BigDecimal amount;
 
@@ -23,7 +23,7 @@ public class MyOrder {
 
     private Long updateTime;
 
-    public MyOrder(String clientOrderId, BigDecimal amount, BigDecimal price, boolean reduceOnly, Side side, Status status, String symbol, Type type, Long updateTime) {
+    public MyOrder(Long clientOrderId, BigDecimal amount, BigDecimal price, boolean reduceOnly, Side side, Status status, String symbol, Type type, Long updateTime) {
         this.clientOrderId = clientOrderId;
         this.amount = amount;
         this.price = price;
@@ -35,7 +35,7 @@ public class MyOrder {
         this.updateTime = updateTime;
     }
 
-    public String getClientOrderId() {
+    public Long getClientOrderId() {
         return clientOrderId;
     }
 

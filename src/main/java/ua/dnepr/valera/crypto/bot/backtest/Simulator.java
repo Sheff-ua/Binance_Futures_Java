@@ -12,7 +12,7 @@ import java.util.concurrent.*;
 public class Simulator {
 
     private HashMap<Long, List<Long>> perfTest = new HashMap<>();
-    private static int EXCHANGE_THREAD_COUNT = 1; // FIXME detect optimal value, 10 looks good for now
+    private static int EXCHANGE_THREAD_COUNT = 6; // FIXME detect optimal value, 6, 10 looks good for now
 
     private static Long clientIdSequence = 1L;
     private static BigDecimal initialBalancePerBot = new BigDecimal("1000");
@@ -25,7 +25,8 @@ public class Simulator {
 
         //String from = "2020-05-26"; String to = "2020-05-27"; String symbol = "BTCUSDT";
         //String from = "2019-10-01"; String to = "2019-11-30"; String symbol = "BTCUSDT";
-        String from = "2019-09-09"; String to = "2020-06-09"; String symbol = "BTCUSDT";
+        //String from = "2020-04-01"; String to = "2020-06-11"; String symbol = "BTCUSDT";
+        String from = "2019-09-08"; String to = "2020-06-11"; String symbol = "BTCUSDT";
 
 
         HistoryStorage historyStorage = new HistoryStorage(symbol, true); // FIXME reduced history is used
@@ -47,6 +48,11 @@ public class Simulator {
                 bot2.setTakeProfitPercent(initialTakeProfit.add(new BigDecimal(i).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
                 bot2.setStopLossPercent(initialStopLoss.add(new BigDecimal(j).setScale(2, RoundingMode.DOWN).divide(new BigDecimal("10"), RoundingMode.DOWN))); // divide 10 gives 0.1 stepping
                 System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + " Bot2 created. Take Profit: " + bot2.getTakeProfitPercent() + ", Stop Loss: " + bot2.getStopLossPercent());
+//                if (!(new BigDecimal("0.30").compareTo(bot2.getTakeProfitPercent()) == 0 && new BigDecimal("4.00").compareTo(bot2.getStopLossPercent()) == 0)) {
+//                    //Take Profit: 0.30, Stop Loss: 4.00
+//                    continue;
+//                }
+
                 bot2List.add(bot2);
             }
         }
@@ -64,7 +70,6 @@ public class Simulator {
             bot2.setExchange(exchange);
             exchange.addOrderUpdateListener(bot2.getClientId(), bot2);
             exchange.addPriceListener(bot2);
-            // FIXME check that one bot2 doesn't belong to 2 or more exchanges !!!
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(EXCHANGE_THREAD_COUNT);
@@ -96,8 +101,18 @@ public class Simulator {
         }
 
         long mainEnd = System.currentTimeMillis();
-        System.out.println("All {"+ bot2List.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) +  " sec.");
+        if (bot2List.size() == statisticsParamsDTOList.size()) {
+            System.out.println("All {" + bot2List.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) + " sec.");
+        } else {
+            System.out.println("Warning! Only  {"+ statisticsParamsDTOList.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) +  " sec!!!");
+        }
         executor.shutdown();
+
+        BigDecimal sumBalance = BigDecimal.ZERO;
+        for (Bot2 bot : bot2List) {
+            sumBalance =  sumBalance.add(bot.getBalance());
+        }
+        System.out.println("Avg Balance: " + sumBalance.divide(new BigDecimal(bot2List.size()), RoundingMode.DOWN));
     }
 
 
