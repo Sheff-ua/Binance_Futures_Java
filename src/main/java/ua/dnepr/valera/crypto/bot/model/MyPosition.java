@@ -9,6 +9,8 @@ import java.util.List;
 
 public class MyPosition {
 
+    public static int DIVIDE_SCALE = 6;
+
     // TODO variation margin
     private final String symbol;
     private final Side side;
@@ -20,6 +22,9 @@ public class MyPosition {
 //    private Long closeTime;
     //private BigDecimal pNL = BigDecimal.ZERO;
 
+    private BigDecimal expectedProfit = null;
+    private BigDecimal expectedLoss = null;
+
     private List<MyOrder> openingOrders = new ArrayList<>();
     private List<MyOrder> takeProfitOrders = new ArrayList<>();
     private List<MyOrder> stopLossOrders = new ArrayList<>();
@@ -29,6 +34,10 @@ public class MyPosition {
     private List<MyOrder> stopLossOrdersHistory = new ArrayList<>();
 
     private List<MyOrder> ordersHistory = new ArrayList<>();
+
+    private boolean allOpeningOrdersExecuted = false;
+    private boolean closeByStopLoss = false;
+    private boolean closeByProfit = false;
 
     //private List<MyPosition> subPositions = new ArrayList<>();
 
@@ -43,6 +52,30 @@ public class MyPosition {
 
     public boolean isOpening() {
         return openingOrders.size() > 0;
+    }
+
+    public boolean isAllOpeningOrdersExecuted() {
+        return allOpeningOrdersExecuted;
+    }
+
+    public void setAllOpeningOrdersExecuted(boolean allOpeningOrdersExecuted) {
+        this.allOpeningOrdersExecuted = allOpeningOrdersExecuted;
+    }
+
+    public boolean isCloseByStopLoss() {
+        return closeByStopLoss;
+    }
+
+    public void setCloseByStopLoss(boolean closeByStopLoss) {
+        this.closeByStopLoss = closeByStopLoss;
+    }
+
+    public boolean isCloseByProfit() {
+        return closeByProfit;
+    }
+
+    public void setCloseByProfit(boolean closeByProfit) {
+        this.closeByProfit = closeByProfit;
     }
 
     /* realized commission */
@@ -76,8 +109,8 @@ public class MyPosition {
                             amountCalc = order.getAmount();
                         } else {
                             BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
 
                             BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
                             BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
@@ -90,9 +123,27 @@ public class MyPosition {
                         pNLCalc = pNLCalc.add(pnlPart);
                         amountCalc = amountCalc.subtract(order.getAmount());
                     }
-                } else {
-                    throw new IllegalStateException("Realized PnL calculation for Short position is not implemented");
-                    // TODO Short
+                } else { // SHORT
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // BUY
+                        BigDecimal pnlPart = entryPriceCalc.subtract(order.getPrice()).multiply(order.getAmount()); // FIXME fixed as reverse of price to subtract from
+                        pNLCalc = pNLCalc.add(pnlPart);
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
                 }
             }
         }
@@ -106,6 +157,7 @@ public class MyPosition {
         if (Side.LONG.equals(this.side)) {
             return price.subtract(entryPrice).multiply(amount);
         } else {
+            //return price.subtract(entryPrice).multiply(amount);
             throw new IllegalStateException("Unrealized PnL calculation for Short position is not implemented");
         }
     }
@@ -167,15 +219,15 @@ public class MyPosition {
 
         for (MyOrder order : ordersHistory) {
             if (MyOrder.Status.FILLED.equals(order.getStatus())) {
-                if (Side.LONG.equals(this.side)) {
+                if (Side.LONG.equals(this.side)) { // LONG
                     if (order.getSide().equals(MyOrder.Side.BUY)) {
-                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
                             entryPriceCalc = order.getPrice();
                             amountCalc = order.getAmount();
                         } else {
                             BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
 
                             BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
                             BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
@@ -186,9 +238,25 @@ public class MyPosition {
                     } else { // SELL
                         amountCalc = amountCalc.subtract(order.getAmount());
                     }
-                } else {
-                    throw new IllegalStateException("Entry price calculation for Short position is not implemented");
-                    // TODO Short
+                } else { // SHORT
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // BUY
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
                 }
             }
         }
@@ -204,13 +272,13 @@ public class MyPosition {
             if (MyOrder.Status.FILLED.equals(order.getStatus())) {
                 if (Side.LONG.equals(this.side)) {
                     if (order.getSide().equals(MyOrder.Side.BUY)) {
-                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
                             entryPriceCalc = order.getPrice();
                             amountCalc = order.getAmount();
                         } else {
                             BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
 
                             BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
                             BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
@@ -222,8 +290,24 @@ public class MyPosition {
                         amountCalc = amountCalc.subtract(order.getAmount());
                     }
                 } else {
-                    throw new IllegalStateException("Amount calculation for Short position is not implemented");
-                    // TODO Short
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // SELL
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
                 }
             }
         }
@@ -233,31 +317,54 @@ public class MyPosition {
     public BigDecimal getMaxAmount() {
         BigDecimal entryPriceCalc = BigDecimal.ZERO;
         BigDecimal amountCalc = BigDecimal.ZERO;
+        BigDecimal maxAmountCalc = BigDecimal.ZERO;
 
         for (MyOrder order : ordersHistory) {
             if (MyOrder.Status.FILLED.equals(order.getStatus())) {
                 if (Side.LONG.equals(this.side)) {
                     if (order.getSide().equals(MyOrder.Side.BUY)) {
-                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
                             entryPriceCalc = order.getPrice();
                             amountCalc = order.getAmount();
                         } else {
                             BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
 
                             BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
                             BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
 
                             entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
                             amountCalc = resultingAmount;
+                            if (amountCalc.compareTo(maxAmountCalc) > 0) {
+                                maxAmountCalc = amountCalc;
+                            }
                         }
                     } else { // SELL
-                        //amountCalc = amountCalc.subtract(order.getAmount());
+                        amountCalc = amountCalc.subtract(order.getAmount());
                     }
                 } else {
-                    throw new IllegalStateException("Amount calculation for Short position is not implemented");
-                    // TODO Short
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                            if (amountCalc.compareTo(maxAmountCalc) > 0) {
+                                maxAmountCalc = amountCalc;
+                            }
+                        }
+                    } else { // SELL
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
                 }
             }
         }
@@ -292,33 +399,30 @@ public class MyPosition {
     }
 
     public Long getCloseTime() {
-        BigDecimal entryPriceCalc = BigDecimal.ZERO;
         BigDecimal amountCalc = BigDecimal.ZERO;
 
         for (MyOrder order : ordersHistory) {
             if (MyOrder.Status.FILLED.equals(order.getStatus())) {
                 if (Side.LONG.equals(this.side)) {
                     if (order.getSide().equals(MyOrder.Side.BUY)) {
-                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
-                            entryPriceCalc = order.getPrice();
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
                             amountCalc = order.getAmount();
                         } else {
-                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
-
-                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
-                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
-
-                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
-                            amountCalc = resultingAmount;
+                            amountCalc = amountCalc.add(order.getAmount());
                         }
                     } else { // SELL
                         amountCalc = amountCalc.subtract(order.getAmount());
                     }
                 } else {
-                    throw new IllegalStateException("Close Time calculation for Short position is not implemented");
-                    // TODO Short
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            amountCalc = order.getAmount();
+                        } else {
+                            amountCalc = amountCalc.add(order.getAmount());
+                        }
+                    } else { // SELL
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
                 }
             }
             if (amountCalc.compareTo(BigDecimal.ZERO) == 0) {
@@ -326,20 +430,6 @@ public class MyPosition {
             }
         }
         return null;
-    }
-
-    @Override
-    public String toString() {
-        return "MyPosition{" +
-                "symbol='" + symbol + '\'' +
-                ", side=" + side +
-                ", openTime=" + Utils.formatDateTimeUTCForPrint(getOpenTime()) +
-                ", closeTime=" + Utils.formatDateTimeUTCForPrint(getCloseTime()) +
-                ", entryPrice=" + getEntryPrice() +
-                ", maxAmount=" + getMaxAmount() +
-                ", PnL=" + calcRealizedPNL() +
-                ", Commission=" + calcCommission() +
-                '}';
     }
 
     public String printEntryPriceAmountHistory () {
@@ -352,27 +442,27 @@ public class MyPosition {
             if (MyOrder.Status.FILLED.equals(order.getStatus())) {
                 if (Side.LONG.equals(this.side)) {
                     if (order.getSide().equals(MyOrder.Side.BUY)) {
-                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
                             entryPriceCalc = order.getPrice();
                             amountCalc = order.getAmount();
-                            result = result + "[BUY -> Entry Price: " + entryPriceCalc + ", Amount: " + amountCalc + "]";
+                            result = result + "[BUY            -> Entry Price: " + Utils.formatPrice(entryPriceCalc) + ", Amount: " + amountCalc + "]\n";
                         } else {
                             BigDecimal resultingAmount = amountCalc.add(order.getAmount());
-                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, RoundingMode.DOWN);
-                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, RoundingMode.DOWN);
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
 
                             BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
                             BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
 
                             entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
                             amountCalc = resultingAmount;
-                            result = result + "[BUY Additional -> Entry Price: " + entryPriceCalc + ", Amount: " + amountCalc + "]";
+                            result = result + "[BUY Additional -> Entry Price: " + Utils.formatPrice(entryPriceCalc) + ", Amount: " + amountCalc + "]\n";
                         }
                     } else { // SELL
                         BigDecimal pnlPart = order.getPrice().subtract(entryPriceCalc).multiply(order.getAmount());
                         pNLCalc = pNLCalc.add(pnlPart);
                         amountCalc = amountCalc.subtract(order.getAmount());
-                        result = result + "[SELL -> Price: " + order.getPrice() + ", Amount: " + order.getAmount() + ",  Entry Price: " + entryPriceCalc + ", Amount: " + amountCalc + ", Realized PNL: " + pNLCalc + "]";
+                        result = result + "[SELL           -> Entry Price: " + Utils.formatPrice(entryPriceCalc) + ", Amount: " + amountCalc + ",  Price: " + Utils.formatPrice(order.getPrice()) + ", Amount: " + order.getAmount() + ", Realized PNL: " + Utils.formatPrice(pNLCalc) + "]\n";
                     }
                 } else {
                     throw new IllegalStateException("Realized PnL calculation for Short position is not implemented");
@@ -384,7 +474,38 @@ public class MyPosition {
         return result;
     }
 
-    enum Side {
+    @Override
+    public String toString() {
+        return "MyPosition{" +
+                "symbol='" + symbol + '\'' +
+                ", side=" + side +
+                ", openTime=" + Utils.formatDateTimeUTCForPrint(getOpenTime()) +
+                ", closeTime=" + Utils.formatDateTimeUTCForPrint(getCloseTime()) +
+                ", entryPrice=" + Utils.formatPrice(getEntryPrice()) +
+                ", amount=" + getAmount() +
+                ", maxAmount=" + getMaxAmount() +
+                ", PnL=" + Utils.formatPrice(calcRealizedPNL()) +
+                ", Commission=" + Utils.formatPrice(calcCommission()) +
+                '}';
+    }
+
+    public BigDecimal getExpectedProfit() {
+        return expectedProfit;
+    }
+
+    public void setExpectedProfit(BigDecimal expectedProfit) {
+        this.expectedProfit = expectedProfit;
+    }
+
+    public BigDecimal getExpectedLoss() {
+        return expectedLoss;
+    }
+
+    public void setExpectedLoss(BigDecimal expectedLoss) {
+        this.expectedLoss = expectedLoss;
+    }
+
+    public enum Side {
         LONG,
         SHORT
     }

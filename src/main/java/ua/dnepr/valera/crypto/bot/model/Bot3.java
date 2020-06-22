@@ -12,13 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Long Bot2.
- * Opens new Long/Short position when price drops/raise at 1% in comparison to Day opening price.
- * Amount used for open order is 10% of balance.
- * Sets fixed percent Stop Loss and variable (fixed money) Take Profit.
- * Creates 2 additional Open Orders using 1% and 2% step and 20% and 30% of balance.
+ * Long Bot3.
+ *
  */
-public class Bot2 implements PriceListener, OrderUpdateListener {
+public class Bot3 implements PriceListener, OrderUpdateListener {
 
     public static final int AMOUNT_PRECISION_BTC = 3;
     public static final BigDecimal MIN_ORDER_AMOUNT = new BigDecimal("0.001");
@@ -53,7 +50,7 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
     private List<Long> shortSideOrderIds = new ArrayList<>();
     private List<Long> longSideOrderIds = new ArrayList<>();
 
-    public Bot2(Long clientId, String symbol, BigDecimal balance) {
+    public Bot3(Long clientId, String symbol, BigDecimal balance) {
         this.clientId = clientId;
         this.symbol = symbol;
 

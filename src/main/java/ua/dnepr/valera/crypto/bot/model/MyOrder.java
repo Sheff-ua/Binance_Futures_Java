@@ -1,5 +1,7 @@
 package ua.dnepr.valera.crypto.bot.model;
 
+import ua.dnepr.valera.crypto.bot.Utils;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -113,15 +115,16 @@ public class MyOrder {
     @Override
     public String toString() {
         return "MyOrder{" +
-                "clientOrderId='" + clientOrderId + '\'' +
+                "symbol='" + symbol + '\'' +
+                ", clientOrderId='" + clientOrderId + '\'' +
                 ", amount=" + amount +
                 ", price=" + price +
                 ", reduceOnly=" + reduceOnly +
                 ", side=" + side +
-                ", status=" + status +
-                ", symbol='" + symbol + '\'' +
                 ", type=" + type +
+                ", status=" + status +
                 ", updateTime=" + updateTime +
+                ", updateTimeFormatted=" + Utils.formatDateTimeUTCForPrint(updateTime) +
                 '}';
     }
 }

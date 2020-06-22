@@ -22,7 +22,7 @@ public class ExchangeCallable implements Callable<List<StatisticsParamsDTO>> {
             int currPercent = exchange.calcPercent();
             if (currPercent - lastPercent >= 1) {
                 lastPercent = currPercent;
-                System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + String.format("  Current percent: %2d", lastPercent) + " %"); // FIXME uncomment for batch Bot2 mode
+                System.out.println(Utils.formatDateTimeUTCForPrint(System.currentTimeMillis()) + String.format("  Current percent: %2d", lastPercent) + " %"); // FIXME uncomment for batch Bot3 mode
             }
         }
 

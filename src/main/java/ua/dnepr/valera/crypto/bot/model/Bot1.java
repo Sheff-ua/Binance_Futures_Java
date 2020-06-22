@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Long Bot1
+ * Long Bot1. Opens new position as soon as previous one is closed. Sets fixed percent TakeProfit and Stop Loss.
  */
 public class Bot1 implements PriceListener, OrderUpdateListener {
 

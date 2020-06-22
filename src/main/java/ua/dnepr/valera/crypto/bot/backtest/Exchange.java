@@ -137,6 +137,9 @@ public class Exchange implements IExchange {
                 throw new IllegalArgumentException("Tried to place Limit Sell with price lower then Market price");
             }
         }
+        if (myOrder.getPrice() == null || myOrder.getPrice().compareTo(BigDecimal.ZERO) == 0) {
+            throw new IllegalArgumentException("Tried to place Order without Price");
+        }
 
         List<MyOrder> clientOrders = currentOrders.get(clientId);
         if (clientOrders == null) {
