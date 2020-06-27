@@ -14,16 +14,23 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class Utils {
+    public static final int AMOUNT_PRECISION_BTC = 3;
 
     private static final DateTimeFormatter DATE_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter formatter8 = DateTimeFormatter.ISO_INSTANT;
 
     private static final NumberFormat priceFormat = DecimalFormat.getInstance(Locale.ROOT);
+    private static final NumberFormat amountFormat = DecimalFormat.getInstance(Locale.ROOT);
+
 
     static {
         priceFormat.setMaximumFractionDigits(2);
         priceFormat.setMinimumFractionDigits(2);
         priceFormat.setGroupingUsed(false);
+
+        amountFormat.setMaximumFractionDigits(3);
+        amountFormat.setMinimumFractionDigits(1);
+        amountFormat.setGroupingUsed(false);
     }
 
 
@@ -57,6 +64,13 @@ public class Utils {
         return new BigDecimal("100").divide(coef, 6, RoundingMode.DOWN);
     }
 
+    public static BigDecimal calcAmountToAverageAtPrice(BigDecimal initialAmount, BigDecimal initialPrice, BigDecimal desiredPrice, BigDecimal currentPrice) {
+        BigDecimal pr1 = initialPrice.subtract(desiredPrice);
+        BigDecimal pr2 = desiredPrice.subtract(currentPrice);
+        BigDecimal pr3 = pr1.divide(pr2, AMOUNT_PRECISION_BTC, RoundingMode.UP); // TODO check scale for Satoshi coins
+        return initialAmount.multiply(pr3).setScale(AMOUNT_PRECISION_BTC, RoundingMode.UP);
+    }
+
     public static BigDecimal calcNewTakeForNewEntryAndAmount(MyPosition.Side positionSide, BigDecimal expectedPnL, BigDecimal newEntryPrice, BigDecimal newAmount) {
         if (positionSide.equals(MyPosition.Side.LONG)) {
             return expectedPnL.divide(newAmount, RoundingMode.DOWN).add(newEntryPrice);
@@ -76,6 +90,12 @@ public class Utils {
     public static String formatPrice(BigDecimal price) {
         synchronized (priceFormat) {
             return priceFormat.format(price);
+        }
+    }
+
+    public static String formatAmount(BigDecimal amount) {
+        synchronized (amountFormat) {
+            return amountFormat.format(amount);
         }
     }
 

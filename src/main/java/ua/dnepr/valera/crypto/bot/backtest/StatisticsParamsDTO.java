@@ -79,7 +79,7 @@ public class StatisticsParamsDTO implements Comparable<StatisticsParamsDTO> {
 
                 ", takeProfitPercent=" + takeProfitPercent + "%" +
                 ", stopLossPercent=" + stopLossPercent + "%" +
-                (liquidatedCount > 0 ? "liquidatedCount=" + liquidatedCount : "")
+                (liquidatedCount > 0 ? ", liquidatedCount=" + liquidatedCount : "")
                 ;
     }
 }

@@ -172,7 +172,7 @@ public class HistoricalDataSpotMultiThreadRetriever {
         //String[] symbols = {"ETHBTC", "GRSBTC", "EOSBTC", "BNBBTC"};
         //String[] symbols = {"BCHUSDT","LTCUSDT","TRXUSDT","ADAUSDT","XMRUSDT","XLMUSDT","DASHUSDT","ZECUSDT","XTZUSDT","ATOMUSDT","ONTUSDT","IOTAUSDT","BATUSDT","VETUSDT","NEOUSDT","IOSTUSDT"};
         String[] symbols = {"BTCUSDT"};
-        int proceedId = 1; // TODO set to 1 if no need
+        int proceedId = 106829695; // TODO set to 1 if no need
 
         for (String symbol : symbols) {
             RequestOptions options = new RequestOptions();
@@ -307,7 +307,7 @@ public class HistoricalDataSpotMultiThreadRetriever {
                     writeCSV(getFileName(isSpot, false, symbol, prevAggTrade,true), oneDayAggregateTradeList);
 
                     List<AggregateTrade> oneDayAggregateTradeReducedList = reduce(oneDayAggregateTradeList);
-                    log.info("Writing csv: " + getFileName(isSpot, true, symbol, prevAggTrade, false));
+                    log.info("Writing csv: " + getFileName(isSpot, true, symbol, prevAggTrade, true));
                     writeCSV(getFileName(isSpot, true, symbol, prevAggTrade, false), oneDayAggregateTradeReducedList);
 
                     break;

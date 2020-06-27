@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Long Bot1. Opens new position as soon as previous one is closed. Sets fixed percent TakeProfit and Stop Loss.
+ * Long Bot1a. Opens new position as soon as previous one is closed. Sets fixed percent TakeProfit and Stop Loss.
  */
-public class Bot1 implements PriceListener, OrderUpdateListener {
+public class Bot1a implements PriceListener, OrderUpdateListener {
 
     public static final int AMOUNT_PRECISION_BTC = 3;
     public static final BigDecimal MIN_ORDER_AMOUNT = new BigDecimal("0.001");
@@ -38,7 +38,7 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
     private List<String> shortSideOrderIds = new ArrayList<>();
     private List<Long> longSideOrderIds = new ArrayList<>();
 
-    public Bot1(Long clientId, String symbol, BigDecimal balance) {
+    public Bot1a(Long clientId, String symbol, BigDecimal balance) {
         this.clientId = clientId;
         this.symbol = symbol;
         this.balance = balance;
@@ -199,24 +199,6 @@ public class Bot1 implements PriceListener, OrderUpdateListener {
         }
     }
 
-
-    private List<MyOrder> createAdditionalOpenOrders(MyPosition position) {
-        List<MyOrder> orders = new ArrayList<>();
-
-        BigDecimal halfOfBalance = balance.divide(new BigDecimal("2"), RoundingMode.DOWN); // FIXME Full or Half
-        BigDecimal entryPriceMinusOnePercent = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()));
-        BigDecimal amount = halfOfBalance.divide(entryPriceMinusOnePercent, AMOUNT_PRECISION_BTC, RoundingMode.DOWN); // 50%
-
-        MyOrder order = new MyOrder(getNextOrderId(), amount,
-                MyPosition.Side.LONG.equals(position.getSide())
-                        ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()))
-                        : position.getEntryPrice().add(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice())),
-                false, MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.BUY : MyOrder.Side.SELL,
-                MyOrder.Status.NEW, symbol, MyOrder.Type.LIMIT, null); // TODO get time from last AggTrade via #onNewPrice()
-
-        orders.add(order);
-        return orders;
-    }
 
     private MyOrder createTakeProfitOrder(MyPosition position) {
         MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(),

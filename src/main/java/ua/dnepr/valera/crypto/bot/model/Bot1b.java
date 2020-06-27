@@ -1,5 +1,6 @@
 package ua.dnepr.valera.crypto.bot.model;
 
+
 import ua.dnepr.valera.crypto.bot.Utils;
 import ua.dnepr.valera.crypto.bot.backtest.IExchange;
 import ua.dnepr.valera.crypto.bot.backtest.Statistics;
@@ -12,13 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bot2.
- * Opens new Long/Short position when price drops/raise at 1% in comparison to Day opening price.
- * Amount used for open order is 10% of balance.
- * Sets fixed percent Stop Loss and variable (fixed money) Take Profit.
- * Creates 2 additional Open Orders using 1% and 2% step and 20% and 30% of balance.
+ * Long Bot1b. Opens new position as soon as previous one is closed. Sets fixed percent TakeProfit and Stop Loss.
  */
-public class Bot2 implements PriceListener, OrderUpdateListener {
+public class Bot1b implements PriceListener, OrderUpdateListener {
 
     public static final int AMOUNT_PRECISION_BTC = 3;
     public static final BigDecimal MIN_ORDER_AMOUNT = new BigDecimal("0.001");
@@ -53,7 +50,7 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
     private List<Long> shortSideOrderIds = new ArrayList<>();
     private List<Long> longSideOrderIds = new ArrayList<>();
 
-    public Bot2(Long clientId, String symbol, BigDecimal balance) {
+    public Bot1b(Long clientId, String symbol, BigDecimal balance) {
         this.clientId = clientId;
         this.symbol = symbol;
 
@@ -108,66 +105,55 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                 liquidatedCount);  // FIXME unclosed positions: close or track somehow ?!
     }
 
-    public List<MyPosition> getUnclosedPositions() {
-        List<MyPosition> result = new ArrayList<>();
-        if (longPosition != null) {
-            result.add(longPosition);
-        }
-        if (shortPosition != null) {
-            result.add(longPosition);
-        }
-        return result;
+    public String getDescription() {
+        return "Simple Bot, Longs open after 3% raise!, Shorts open after 3% drop!";
     }
 
-    BigDecimal dayStartPrice = BigDecimal.ZERO;
+    BigDecimal hourStartPrice = BigDecimal.ZERO;
 
     // TODO inject EntryPoint DecisionMaker so it could became variable for Permutation in outside cycle
     @Override
     public void onNewPrice(String symbol, BigDecimal price, long timeInMillis, Boolean isSell) {
         ZonedDateTime dateTime = Utils.parseDateTime(timeInMillis);
 
-        if (dayStartPrice.equals(BigDecimal.ZERO) || (dateTime.getHour() == 1 && dateTime.getMinute() == 1)) {
-            dayStartPrice = price;
+        if (hourStartPrice.equals(BigDecimal.ZERO) || (/*dateTime.getHour() == 1 &&*/ dateTime.getMinute() == 1)) {
+            hourStartPrice = price;
         }
-//        if (dateTime.getMinute() == 59 && hourStartPrice.compareTo(BigDecimal.ZERO) != 0) {
-//            hourStartPrice = BigDecimal.ZERO;
-//        }
 
-
-
-        // TODO different balance for Long/Short positions or different Long/Short Bots
-        if (longPosition == null && Utils.calcXOfYInPercents(price, dayStartPrice).compareTo(new BigDecimal("99")) < 0) { // TODO some additional condition!
-//        if (longPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("101")) > 0) { // TODO some additional condition!
-            BigDecimal tenPercentsOfBalance = Utils.calcXPercentsFromY(new BigDecimal(10), balance);
-            BigDecimal amount = tenPercentsOfBalance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN); // 10%
-
-            if (amount.compareTo(MIN_ORDER_AMOUNT) <= 0) { // No Money !!!
-                System.out.println("Empty balance!"); // TODO
+//        if (longPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("96")) < 0) { // TODO some additional condition!  // long after drop (looks logical, but minus balance)
+        if (longPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("103")) < 0) { // TODO some additional condition!  // long after raise !!!
+            // TODO extract variables
+            BigDecimal possibleAmount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
+            if (possibleAmount.compareTo(MIN_ORDER_AMOUNT) <= 0) { // No Money !!!
+                System.out.println("Empty balance long! Take:" + getTakeProfitPercent() + ", Stop:" + getStopLossPercent()); // TODO
                 liquidatedCount++;
                 balance = initialBalance;
+                return;
             }
-
+            BigDecimal amount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
             MyOrder initialMarketOrder = new MyOrder(getNextOrderId(),
                     amount, price, false, MyOrder.Side.BUY, MyOrder.Status.NEW,
                     symbol, MyOrder.Type.MARKET, null);
+
             exchange.placeOrder(getClientId(), initialMarketOrder);
             longSideOrderIds.add(initialMarketOrder.getClientOrderId());
         }
 
-        if (shortPosition == null && Utils.calcXOfYInPercents(price, dayStartPrice).compareTo(new BigDecimal("101")) > 0) { // TODO some additional condition!
-//        if (shortPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("99")) < 0) { // TODO some additional condition!
-            BigDecimal tenPercentsOfBalance = Utils.calcXPercentsFromY(new BigDecimal(10), balance);
-            BigDecimal amount = tenPercentsOfBalance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
-
-            if (amount.compareTo(MIN_ORDER_AMOUNT) <= 0) {  // No Money !!!
-                System.out.println("Empty balance!"); // TODO
+//        if (shortPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("104")) > 0) { // TODO some additional condition! // short after raise (looks logical, but minus balance)
+        if (shortPosition == null && Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("97")) < 0) { // TODO some additional condition! // short after drop !!!
+            BigDecimal possibleAmount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
+            if (possibleAmount.compareTo(MIN_ORDER_AMOUNT) <= 0) { // No Money !!!
+                System.out.println("Empty balance short! Take:" + getTakeProfitPercent() + ", Stop:" + getStopLossPercent()); // TODO
                 liquidatedCount++;
                 balance = initialBalance;
+                return;
             }
 
+            BigDecimal amount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
             MyOrder initialMarketOrder = new MyOrder(getNextOrderId(),
                     amount, price, false, MyOrder.Side.SELL, MyOrder.Status.NEW,
                     symbol, MyOrder.Type.MARKET, null);
+
             exchange.placeOrder(getClientId(), initialMarketOrder);
             shortSideOrderIds.add(initialMarketOrder.getClientOrderId());
         }
@@ -190,7 +176,7 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
             }
             List<MyOrder> ordersToCancelOnExchange = new ArrayList<>();
 
-/*==================     LONG      ==================*/
+            /*==================     LONG      ==================*/
 
             switch (positionChange) {
                 case OPEN:
@@ -200,68 +186,20 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                     longPosition.addOrderToHistory(updatedOrder);
 
                     //create, store and place additional and profit/stop orders
-
-                    List<MyOrder> additionalOrders = createAdditionalOpenOrders(longPosition);
-                    for (MyOrder additionalOrder : additionalOrders) {
-                        longSideOrderIds.add(additionalOrder.getClientOrderId());
-                        exchange.placeOrder(getClientId(), additionalOrder);
-                    }
-
-                    MyOrder takeProfitOrder = createTakeProfitOrder(longPosition, null);
-                    longPosition.setExpectedProfit(calcExpectedProfit(longPosition, takeProfitOrder));
+                    MyOrder takeProfitOrder = createTakeProfitOrder(longPosition);
                     longSideOrderIds.add(takeProfitOrder.getClientOrderId());
                     exchange.placeOrder(getClientId(), takeProfitOrder);
 
-
-                    MyOrder stopLossOrder = createStopLossOrder(longPosition, null);
-                    longPosition.setExpectedLoss(calcExpectedLoss(longPosition, stopLossOrder));
+                    MyOrder stopLossOrder = createStopLossOrder(longPosition);
                     longSideOrderIds.add(stopLossOrder.getClientOrderId());
                     exchange.placeOrder(getClientId(), stopLossOrder);
 
                     longPosition.moveOpeningOrderToHistory(updatedOrder);
-                    for (MyOrder additionalOrder : additionalOrders) {
-                        longPosition.addOpeningOrder(additionalOrder);
-                    }
                     longPosition.addTakeProfitOrder(takeProfitOrder);
                     longPosition.addStopLossOrder(stopLossOrder);
-
-                    longPosition.setAllOpeningOrdersExecuted(longPosition.getOpeningOrders().size() == 0);
                     break;
 
                 case INCREASE:
-                    // calc updated Entry Price for position
-                    for (MyOrder order : longPosition.getOpeningOrders()) {
-                        if (order.equals(updatedOrder)) { // looks like this always be true for opening orders
-                            longPosition.moveOpeningOrderToHistory(order);
-                        }
-                    }
-                    for (MyOrder order : longPosition.getTakeProfitOrders()) {
-                        ordersToCancelOnExchange.add(order);
-                        order.setStatus(MyOrder.Status.CANCELLED);
-                        order.setUpdateTime(updatedOrder.getUpdateTime());
-                        longPosition.moveTakeProfitOrderToHistory(order);
-                    }
-                    for (MyOrder order : longPosition.getStopLossOrders()) {
-                        ordersToCancelOnExchange.add(order);
-                        order.setStatus(MyOrder.Status.CANCELLED);
-                        order.setUpdateTime(updatedOrder.getUpdateTime());
-                        longPosition.moveStopLossOrderToHistory(order);
-                    }
-
-                    exchange.cancelOrdersBatchWithoutFire(getClientId(), ordersToCancelOnExchange);
-
-                    MyOrder takeProfitIncreasedOrder = createTakeProfitOrder(longPosition, longPosition.getExpectedProfit());
-                    longSideOrderIds.add(takeProfitIncreasedOrder.getClientOrderId());
-                    exchange.placeOrder(getClientId(), takeProfitIncreasedOrder);
-
-                    MyOrder stopLossIncreasedOrder = createStopLossOrder(longPosition, longPosition.getExpectedLoss());
-                    longSideOrderIds.add(stopLossIncreasedOrder.getClientOrderId());
-                    exchange.placeOrder(getClientId(), stopLossIncreasedOrder);
-
-                    longPosition.addTakeProfitOrder(takeProfitIncreasedOrder);
-                    longPosition.addStopLossOrder(stopLossIncreasedOrder);
-
-                    longPosition.setAllOpeningOrdersExecuted(longPosition.getOpeningOrders().size() == 0); // if all opening orders already moved to history
                     break;
 
                 case CLOSE:
@@ -299,7 +237,6 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                             longPosition.moveStopLossOrderToHistory(order);
                         }
                     }
-
                     exchange.cancelOrdersBatchWithoutFire(getClientId(), ordersToCancelOnExchange);
                     statistics.addLongPosition(longPosition);
                     balance = balance.add(longPosition.calcRealizedPNL()).subtract(longPosition.calcCommission());
@@ -319,7 +256,7 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
             }
             List<MyOrder> ordersToCancelOnExchange = new ArrayList<>();
 
-/*==================     SHORT      ==================*/
+            /*==================     SHORT      ==================*/
 
             switch (positionChange) {
                 case OPEN:
@@ -329,66 +266,20 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                     shortPosition.addOrderToHistory(updatedOrder);
 
                     //create, store and place additional and profit/stop orders
-                    List<MyOrder> additionalOrders = createAdditionalOpenOrders(shortPosition);
-                    for (MyOrder additionalOrder : additionalOrders) {
-                        shortSideOrderIds.add(additionalOrder.getClientOrderId());
-                        exchange.placeOrder(getClientId(), additionalOrder);
-                    }
-
-                    MyOrder takeProfitOrder = createTakeProfitOrder(shortPosition, null);
-                    shortPosition.setExpectedProfit(calcExpectedProfit(shortPosition, takeProfitOrder));
+                    MyOrder takeProfitOrder = createTakeProfitOrder(shortPosition);
                     shortSideOrderIds.add(takeProfitOrder.getClientOrderId());
                     exchange.placeOrder(getClientId(), takeProfitOrder);
 
-                    MyOrder stopLossOrder = createStopLossOrder(shortPosition, null);
-                    shortPosition.setExpectedLoss(calcExpectedLoss(shortPosition, stopLossOrder));
+                    MyOrder stopLossOrder = createStopLossOrder(shortPosition);
                     shortSideOrderIds.add(stopLossOrder.getClientOrderId());
                     exchange.placeOrder(getClientId(), stopLossOrder);
 
                     shortPosition.moveOpeningOrderToHistory(updatedOrder);
-                    for (MyOrder additionalOrder : additionalOrders) {
-                        shortPosition.addOpeningOrder(additionalOrder);
-                    }
                     shortPosition.addTakeProfitOrder(takeProfitOrder);
                     shortPosition.addStopLossOrder(stopLossOrder);
-
-                    shortPosition.setAllOpeningOrdersExecuted(shortPosition.getOpeningOrders().size() == 0);
                     break;
 
                 case INCREASE:
-                    // calc updated Entry Price for position
-                    for (MyOrder order : shortPosition.getOpeningOrders()) {
-                        if (order.equals(updatedOrder)) { // looks like this always be true for opening orders
-                            shortPosition.moveOpeningOrderToHistory(order);
-                        }
-                    }
-                    for (MyOrder order : shortPosition.getTakeProfitOrders()) {
-                        ordersToCancelOnExchange.add(order);
-                        order.setStatus(MyOrder.Status.CANCELLED);
-                        order.setUpdateTime(updatedOrder.getUpdateTime());
-                        shortPosition.moveTakeProfitOrderToHistory(order);
-                    }
-                    for (MyOrder order : shortPosition.getStopLossOrders()) {
-                        ordersToCancelOnExchange.add(order);
-                        order.setStatus(MyOrder.Status.CANCELLED);
-                        order.setUpdateTime(updatedOrder.getUpdateTime());
-                        shortPosition.moveStopLossOrderToHistory(order);
-                    }
-
-                    exchange.cancelOrdersBatchWithoutFire(getClientId(), ordersToCancelOnExchange);
-
-                    MyOrder takeProfitIncreasedOrder = createTakeProfitOrder(shortPosition, shortPosition.getExpectedProfit());
-                    shortSideOrderIds.add(takeProfitIncreasedOrder.getClientOrderId());
-                    exchange.placeOrder(getClientId(), takeProfitIncreasedOrder);
-
-                    MyOrder stopLossIncreasedOrder = createStopLossOrder(shortPosition, shortPosition.getExpectedLoss());
-                    shortSideOrderIds.add(stopLossIncreasedOrder.getClientOrderId());
-                    exchange.placeOrder(getClientId(), stopLossIncreasedOrder);
-
-                    shortPosition.addTakeProfitOrder(takeProfitIncreasedOrder);
-                    shortPosition.addStopLossOrder(stopLossIncreasedOrder);
-
-                    shortPosition.setAllOpeningOrdersExecuted(shortPosition.getOpeningOrders().size() == 0);
                     break;
 
                 case CLOSE:
@@ -406,8 +297,8 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                     }
                     for (MyOrder order : shortPosition.getTakeProfitOrders()) {
                         if (order.equals(updatedOrder)) {
-                            shortPosition.moveTakeProfitOrderToHistory(order);
                             shortPosition.setCloseByProfit(true);
+                            shortPosition.moveTakeProfitOrderToHistory(order);
                         } else {
                             ordersToCancelOnExchange.add(order);
                             order.setStatus(MyOrder.Status.CANCELLED);
@@ -417,8 +308,8 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
                     }
                     for (MyOrder order : shortPosition.getStopLossOrders()) {
                         if (order.equals(updatedOrder)) {
-                            shortPosition.moveStopLossOrderToHistory(order);
                             shortPosition.setCloseByStopLoss(true);
+                            shortPosition.moveStopLossOrderToHistory(order);
                         } else {
                             ordersToCancelOnExchange.add(order);
                             order.setStatus(MyOrder.Status.CANCELLED);
@@ -445,53 +336,10 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
     }
 
 
-    // FIXME looks like we need to take Commission into account during additional (and maybe even during initial) orders creation
-    private List<MyOrder> createAdditionalOpenOrders(MyPosition position) {
-        List<MyOrder> orders = new ArrayList<>();
-
-        // 1
-        BigDecimal twentyPercentsOfBalance = Utils.calcXPercentsFromY(new BigDecimal(20), balance);
-        BigDecimal entryPriceMinusOnePercent = position.getSide().equals(MyPosition.Side.LONG)
-                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()))
-                : position.getEntryPrice().add(Utils.calcXPercentsFromY(new BigDecimal("1"), position.getEntryPrice()));
-        BigDecimal amount = twentyPercentsOfBalance.divide(entryPriceMinusOnePercent, AMOUNT_PRECISION_BTC, RoundingMode.DOWN); // 20%
-
-        MyOrder order = new MyOrder(getNextOrderId(), amount, entryPriceMinusOnePercent,
-                false, MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.BUY : MyOrder.Side.SELL,
-                MyOrder.Status.NEW, symbol, MyOrder.Type.LIMIT, null); // TODO get time from last AggTrade via #onNewPrice()
-        orders.add(order);
-
-        // 2
-        BigDecimal thirtyPercentsOfBalance = Utils.calcXPercentsFromY(new BigDecimal(30), balance);
-        BigDecimal entryPriceMinusTwoPercents = position.getSide().equals(MyPosition.Side.LONG)
-                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(new BigDecimal("2"), position.getEntryPrice()))
-                : position.getEntryPrice().add(Utils.calcXPercentsFromY(new BigDecimal("2"), position.getEntryPrice()));
-        BigDecimal amount2 = thirtyPercentsOfBalance.divide(entryPriceMinusTwoPercents, AMOUNT_PRECISION_BTC, RoundingMode.DOWN); // 20%
-
-        MyOrder order2 = new MyOrder(getNextOrderId(), amount2, entryPriceMinusTwoPercents,
-                false, MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.BUY : MyOrder.Side.SELL,
-                MyOrder.Status.NEW, symbol, MyOrder.Type.LIMIT, null); // TODO get time from last AggTrade via #onNewPrice()
-        orders.add(order2);
-        return orders;
-    }
-
-    private MyOrder createTakeProfitOrder(MyPosition position, BigDecimal expectedProfit) {
-//        // FIXME variant with fixed percent Take Profit against New Entry Price
-//        BigDecimal takeProfitPrice = MyPosition.Side.LONG.equals(position.getSide())
-//                ? position.getEntryPrice().add(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()))
-//                : position.getEntryPrice().subtract(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()));
-
-        // FIXME variant with fixed money Take Profit against initial Expected Profit
-        BigDecimal takeProfitPrice;
-        if (expectedProfit == null) {
-            if (MyPosition.Side.LONG.equals(position.getSide())) {
-                takeProfitPrice = position.getEntryPrice().add(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()));
-            } else {
-                takeProfitPrice = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()));
-            }
-        } else { // Average
-            takeProfitPrice = Utils.calcNewTakeForNewEntryAndAmount(position.getSide(), expectedProfit, position.getEntryPrice(), position.getAmount());
-        }
+    private MyOrder createTakeProfitOrder(MyPosition position) {
+        BigDecimal takeProfitPrice = MyPosition.Side.LONG.equals(position.getSide())
+                ? position.getEntryPrice().add(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()))
+                : position.getEntryPrice().subtract(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()));
 
         MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(),
                 takeProfitPrice, // TODO separate takes for Long \ Short
@@ -500,58 +348,20 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
         return order;
     }
 
-    private MyOrder createStopLossOrder(MyPosition position, BigDecimal expectedLoss) {
-        // FIXME variant with fixed percent Stop Loss against New Entry Price
+    private MyOrder createStopLossOrder(MyPosition position) {
         BigDecimal stopLossPrice = MyPosition.Side.LONG.equals(position.getSide())
-                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()))
+                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()))  // TODO separate takes for Long \ Short
                 : position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
 
-//        // FIXME variant with fixed money Stop Loss against initial Expected Profit
-//        BigDecimal stopLossPrice;
-//        if (expectedLoss == null) {
-//            if (MyPosition.Side.LONG.equals(position.getSide())) {
-//                stopLossPrice = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
-//            } else {
-//                stopLossPrice = position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
-//            }
-//        } else { // Average
-//            stopLossPrice = Utils.calcNewStopForNewEntryAndAmount(position.getSide(), expectedLoss, position.getEntryPrice(), position.getAmount());
-//        }
-
-        MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(), stopLossPrice,true,
-                MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.SELL: MyOrder.Side.BUY,
+        MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(),
+                stopLossPrice,
+                true, MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.SELL: MyOrder.Side.BUY,
                 MyOrder.Status.NEW, symbol, MyOrder.Type.STOP_MARKET, null); // TODO get time from last AggTrade via #onNewPrice()
         return order;
     }
 
     public Long getClientId() {
         return clientId;
-    }
-
-    /**
-     * It is expected that position.amount equals firstTakeProfitOrder.amount
-     */
-    private BigDecimal calcExpectedProfit(MyPosition position, MyOrder firstTakeProfitOrder) {
-        BigDecimal result;
-        if (position.getSide().equals(MyPosition.Side.LONG)) {
-            result = firstTakeProfitOrder.getPrice().subtract(position.getEntryPrice()).multiply(firstTakeProfitOrder.getAmount());
-        } else {
-            result = position.getEntryPrice().subtract(firstTakeProfitOrder.getPrice()).multiply(firstTakeProfitOrder.getAmount());
-        }
-        return result;
-    }
-
-    /**
-     * It is expected that position.amount equals firstStopLossOrder.amount
-     */
-    private BigDecimal calcExpectedLoss(MyPosition position, MyOrder firstStopLossOrder) {
-        BigDecimal result;
-        if (position.getSide().equals(MyPosition.Side.LONG)) {
-            result = firstStopLossOrder.getPrice().subtract(position.getEntryPrice()).multiply(firstStopLossOrder.getAmount()).abs();
-        } else {
-            result = position.getEntryPrice().subtract(firstStopLossOrder.getPrice()).multiply(firstStopLossOrder.getAmount()).abs();
-        }
-        return result;
     }
 
     /**
