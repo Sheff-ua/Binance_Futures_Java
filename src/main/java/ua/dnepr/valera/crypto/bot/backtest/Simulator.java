@@ -4,7 +4,6 @@ import ua.dnepr.valera.crypto.bot.ExchangeCallable;
 import ua.dnepr.valera.crypto.bot.ProgressLogger;
 import ua.dnepr.valera.crypto.bot.Utils;
 import ua.dnepr.valera.crypto.bot.model.Bot1b;
-import ua.dnepr.valera.crypto.bot.model.Bot3;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -42,7 +41,7 @@ public class Simulator {
         System.out.println("Start Simulation...");
         long simStart = System.currentTimeMillis();
 
-        //List<Bot3> botList = new ArrayList<>();
+        //List<Bot3Fibo> botList = new ArrayList<>();
         List<Bot1b> botList = new ArrayList<>();
         // TODO this values should correspond to Strategy (for example average/last opening orders price should be less then stop price)
 //        BigDecimal fromTakeProfit = new BigDecimal("0.1"), toTakeProfit = new BigDecimal("0.5"); // Fibo

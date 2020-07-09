@@ -15,7 +15,7 @@ import java.util.List;
  * Fibo Bot
  *
  */
-public class Bot3 implements PriceListener, OrderUpdateListener {
+public class Bot3Fibo implements PriceListener, OrderUpdateListener {
 
     public static final int AMOUNT_PRECISION_BTC = 3;
     public static final BigDecimal MIN_ORDER_AMOUNT = new BigDecimal("0.001");
@@ -56,7 +56,7 @@ public class Bot3 implements PriceListener, OrderUpdateListener {
     private List<Long> shortSideOrderIds = new ArrayList<>();
     private List<Long> longSideOrderIds = new ArrayList<>();
 
-    public Bot3(Long clientId, String symbol, BigDecimal balance) {
+    public Bot3Fibo(Long clientId, String symbol, BigDecimal balance) {
         this.clientId = clientId;
         this.symbol = symbol;
 
@@ -169,6 +169,7 @@ public class Bot3 implements PriceListener, OrderUpdateListener {
 
             if (fiboOrders.size() == 0) {
                 // it is impossible to execute Strategy on this params
+                System.out.println("It is impossible to execute Strategy on this params/balance");
                 return;
             }
 
@@ -461,8 +462,8 @@ public class Bot3 implements PriceListener, OrderUpdateListener {
     public List<MyOrder> createFiboOpenOrders(BigDecimal marketPrice, BigDecimal fiboPercentSize, BigDecimal takeProfitPercent, BigDecimal fiboPercentPlusForStop, BigDecimal balancePercentToRisk, BigDecimal balance, MyPosition.Side positionSide) {
         List<MyOrder> orders = new ArrayList<>();
 
-        List<BigDecimal> fiboLevelPrices = new ArrayList<>(8);
-        List<BigDecimal> fiboLevelAmounts = new ArrayList<>(8);
+        List<BigDecimal> fiboLevelPrices = new ArrayList<>();
+        List<BigDecimal> fiboLevelAmounts = new ArrayList<>();
         if (positionSide.equals(MyPosition.Side.LONG)) {
             BigDecimal fiboPriceDiff = Utils.calcXPercentsFromY(fiboPercentSize, marketPrice); // 1000 is the 10% of 10000
             BigDecimal fiboLastLevelPrice = marketPrice.subtract(fiboPriceDiff); // 10000 - 1000 = 9000

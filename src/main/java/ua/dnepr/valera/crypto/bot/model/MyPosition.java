@@ -151,6 +151,116 @@ public class MyPosition {
         return pNLCalc;
     }
 
+    // TODO should count by using Entry Price plus Realized PnL
+    public BigDecimal getEntryPriceNoLoss() {
+        BigDecimal entryPriceCalc = BigDecimal.ZERO;
+        BigDecimal amountCalc = BigDecimal.ZERO;
+
+        for (MyOrder order : ordersHistory) {
+            if (MyOrder.Status.FILLED.equals(order.getStatus())) {
+                if (Side.LONG.equals(this.side)) { // LONG
+                    if (order.getSide().equals(MyOrder.Side.BUY)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // SELL
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
+                } else { // SHORT
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (amountCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // BUY
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
+                }
+            }
+        }
+
+        return entryPriceCalc;
+    }
+
+
+    // TODO should count by using corresponding Amount at Closing Order price against Opening Order price (not Entry Point price)
+    public BigDecimal calcRealizedPNLOrderToOrder() {
+        BigDecimal entryPriceCalc = BigDecimal.ZERO;
+        BigDecimal amountCalc = BigDecimal.ZERO;
+        BigDecimal pNLCalc = BigDecimal.ZERO;
+
+        for (MyOrder order : ordersHistory) {
+            if (MyOrder.Status.FILLED.equals(order.getStatus())) {
+                if (Side.LONG.equals(this.side)) {
+                    if (order.getSide().equals(MyOrder.Side.BUY)) {
+                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // SELL
+                        BigDecimal pnlPart = order.getPrice().subtract(entryPriceCalc).multiply(order.getAmount());
+                        pNLCalc = pNLCalc.add(pnlPart);
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
+                } else { // SHORT
+                    if (order.getSide().equals(MyOrder.Side.SELL)) {
+                        if (entryPriceCalc.compareTo(BigDecimal.ZERO) == 0) { // initial order
+                            entryPriceCalc = order.getPrice();
+                            amountCalc = order.getAmount();
+                        } else {
+                            BigDecimal resultingAmount = amountCalc.add(order.getAmount());
+                            BigDecimal existingFraction = amountCalc.divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+                            BigDecimal newFraction = order.getAmount().divide(resultingAmount, DIVIDE_SCALE, RoundingMode.DOWN);
+
+                            BigDecimal existingFractionPricePart = existingFraction.multiply(entryPriceCalc);
+                            BigDecimal newFractionPricePart = newFraction.multiply(order.getPrice());
+
+                            entryPriceCalc = existingFractionPricePart.add(newFractionPricePart);
+                            amountCalc = resultingAmount;
+                        }
+                    } else { // BUY
+                        BigDecimal pnlPart = entryPriceCalc.subtract(order.getPrice()).multiply(order.getAmount()); // FIXME fixed as reverse of price to subtract from
+                        pNLCalc = pNLCalc.add(pnlPart);
+                        amountCalc = amountCalc.subtract(order.getAmount());
+                    }
+                }
+            }
+        }
+
+        return pNLCalc;
+    }
+
     public BigDecimal calcUnRealizedPNL(BigDecimal price) {
         BigDecimal amount = getAmount();
         BigDecimal entryPrice = getEntryPrice();

@@ -1,6 +1,6 @@
 package ua.dnepr.valera.crypto.bot;
 
-import ua.dnepr.valera.crypto.bot.model.Bot3;
+import ua.dnepr.valera.crypto.bot.model.Bot3Fibo;
 import ua.dnepr.valera.crypto.bot.model.MyOrder;
 import ua.dnepr.valera.crypto.bot.model.MyPosition;
 
@@ -112,8 +112,8 @@ public class FiboProfitFindingExample {
 //        System.out.println("      History:  \n" + longPosition.printEntryPriceAmountHistory());
 
 
-        Bot3 bot3 = new Bot3(1L, "BTC", new BigDecimal("10000"));
-        bot3.createFiboOpenOrders(new BigDecimal("10000"), new BigDecimal("10"), new BigDecimal("0.3"), new BigDecimal("1"), new BigDecimal("5"), new BigDecimal("10000"), MyPosition.Side.SHORT);
+        Bot3Fibo bot3Fibo = new Bot3Fibo(1L, "BTC", new BigDecimal("10000"));
+        bot3Fibo.createFiboOpenOrders(new BigDecimal("10000"), new BigDecimal("10"), new BigDecimal("0.3"), new BigDecimal("1"), new BigDecimal("5"), new BigDecimal("10000"), MyPosition.Side.SHORT);
 
 
 
