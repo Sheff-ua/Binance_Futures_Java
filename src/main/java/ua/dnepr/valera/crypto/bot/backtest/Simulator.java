@@ -1,19 +1,25 @@
 package ua.dnepr.valera.crypto.bot.backtest;
 
+import com.binance.client.model.market.AggregateTrade;
 import ua.dnepr.valera.crypto.bot.ExchangeCallable;
 import ua.dnepr.valera.crypto.bot.ProgressLogger;
 import ua.dnepr.valera.crypto.bot.Utils;
 import ua.dnepr.valera.crypto.bot.model.Bot1b;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static ua.dnepr.valera.crypto.bot.Utils.NEW_LINE_SEPARATOR;
+
 public class Simulator {
 
+    private static String DIRECTORY = "c:\\Projects\\Crypto\\backtest_history\\";
     private HashMap<Long, List<Long>> perfTest = new HashMap<>();
-    private static int EXCHANGE_THREAD_COUNT = 6; // FIXME detect optimal value, 6, 10 looks good for now
+    private static int EXCHANGE_THREAD_COUNT = 4; // FIXME detect optimal value, 6, 10 looks good for now
 
     private static Long clientIdSequence = 1L;
     private static BigDecimal initialBalancePerBot = new BigDecimal("1000");
@@ -24,11 +30,12 @@ public class Simulator {
 
         long mainStart = System.currentTimeMillis();
 
-        //String from = "2020-05-26"; String to = "2020-05-27"; String symbol = "BTCUSDT";
-        //String from = "2020-06-07"; String to = "2020-06-08"; String symbol = "BTCUSDT";  // last painted case with average and variable take / stop
-        //String from = "2019-10-01"; String to = "2019-11-30"; String symbol = "BTCUSDT";
+        //String from = "2020-05-27"; String to = "2020-05-27"; String symbol = "BTCUSDT"; // 1 day
+        //String from = "2020-05-26"; String to = "2020-05-27"; String symbol = "BTCUSDT"; // 2 days
+        String from = "2020-05-26"; String to = "2020-05-28"; String symbol = "BTCUSDT"; // 3 days
+        //String from = "2019-10-01"; String to = "2019-11-30"; String symbol = "BTCUSDT";  // 2 months
         //String from = "2020-02-01"; String to = "2020-03-01"; String symbol = "BTCUSDT"; // 1 month
-        String from = "2019-09-08"; String to = "2020-06-11"; String symbol = "BTCUSDT"; // all history
+        //String from = "2019-09-08"; String to = "2020-06-11"; String symbol = "BTCUSDT"; // all history
 
 
         HistoryStorage historyStorage = new HistoryStorage(symbol, true); // FIXME reduced history is used
@@ -50,7 +57,7 @@ public class Simulator {
 
         BigDecimal fromTakeProfit = new BigDecimal("1.5"), toTakeProfit = new BigDecimal("10"); // Bot1
         BigDecimal fromStopLoss = new BigDecimal("1.5"), toStopLoss = new BigDecimal("10");
-        BigDecimal stepTakeProfit = new BigDecimal("0.25"), stepStopLoss = new BigDecimal("0.25");
+        BigDecimal stepTakeProfit = new BigDecimal("0.5"), stepStopLoss = new BigDecimal("0.5");
 
         BigDecimal takeProfit = fromTakeProfit;
         while (takeProfit.compareTo(toTakeProfit) <= 0) {
@@ -123,13 +130,16 @@ public class Simulator {
             System.out.println(statisticDTO);
         }
 
+        // TODO write CSV
+        writeCSV(getFileName(botList.get(0).getClass(), from, to), statisticsParamsDTOList);
+
         long mainEnd = System.currentTimeMillis();
         if (botList.size() == statisticsParamsDTOList.size()) {
             System.out.println("All {" + botList.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) + " sec.");
         } else {
             System.out.println("Warning! Only  {"+ statisticsParamsDTOList.size() + "} Simulations on ['" + from + "', '" + to + "'] period finished by thread pool of ( " + EXCHANGE_THREAD_COUNT + " ) threads in " + ((mainEnd - mainStart) / 1000) +  " sec!!!");
         }
-        System.out.println("Bot Class: " + botList.get(0).getClass().toString());
+        System.out.println("Bot Class: " + botList.get(0).getClass().getSimpleName());
         System.out.println("Bot Description: " + botList.get(0).getDescription());
         executor.shutdown();
 
@@ -146,5 +156,41 @@ public class Simulator {
                 + ",  Average Balance Delta: " + Utils.formatPrice(sumBalanceDelta.divide(new BigDecimal(botList.size()), RoundingMode.DOWN)));
     }
 
+    private static String getFileName(Class botClass, String from, String to) {
+        return DIRECTORY + "\\"  + botClass.getSimpleName()+ "_" + from + "_" + to + ".csv";
+    }
+
+    private static void writeCSV(String fileName, List<StatisticsParamsDTO> statisticsParamsDTOList) {
+        FileWriter fileWriter = null;
+
+        try {
+
+            fileWriter = new FileWriter(fileName);
+
+            //Write the CSV file header
+            fileWriter.append(StatisticsParamsDTO.toCSVHeader());
+
+            //Add a new line separator after the header
+            fileWriter.append(NEW_LINE_SEPARATOR);
+
+            //Write a new student object list to the CSV file
+            for (StatisticsParamsDTO statisticsParamsDTO : statisticsParamsDTOList) {
+                fileWriter.append(statisticsParamsDTO.toCSV());
+
+                fileWriter.append(NEW_LINE_SEPARATOR);
+            }
+        } catch (Exception e) {
+            System.out.println("Error during CSV-file write");
+            e.printStackTrace();
+        } finally {
+            try {
+                fileWriter.flush();
+                fileWriter.close();
+            } catch (IOException e) {
+                System.out.println("Error while flushing/closing fileWriter !!!");
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

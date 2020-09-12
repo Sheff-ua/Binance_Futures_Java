@@ -23,6 +23,8 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 
+import static ua.dnepr.valera.crypto.bot.Utils.*;
+
 public class HistoricalDataSpotMultiThreadRetriever {
     private static final Logger log = LoggerFactory.getLogger(HistoricalDataSpotMultiThreadRetriever.class);
 
@@ -31,10 +33,6 @@ public class HistoricalDataSpotMultiThreadRetriever {
     private static int CALL_RATE_LIMIT_SPOT = 1180; // 1200
     private static int CALL_RATE_LIMIT_FEATURES = 2360; // 2400
     private static String DIRECTORY = "c:\\Projects\\Crypto\\production_history\\";
-
-    private static final String FILE_HEADER = "id,price,qty,time,isBuyerMaker";
-    private static final String COMMA_DELIMITER = ",";
-    private static final String NEW_LINE_SEPARATOR = "\n";
 
     private static final BigDecimal REDUCE_PERCENT = new BigDecimal("0.005");
 
@@ -62,7 +60,7 @@ public class HistoricalDataSpotMultiThreadRetriever {
             fileWriter = new FileWriter(fileName);
 
             //Write the CSV file header
-            fileWriter.append(FILE_HEADER);
+            fileWriter.append(HISTORY_FILE_HEADER);
 
             //Add a new line separator after the header
             fileWriter.append(NEW_LINE_SEPARATOR);

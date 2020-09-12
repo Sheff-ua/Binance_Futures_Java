@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fibo Bot
+ * Range Bot 10/20/40/80
  *
  */
 public class Bot4Range implements PriceListener, OrderUpdateListener {
@@ -23,8 +23,7 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
     private BigDecimal initialShortEntryPrice = BigDecimal.ZERO;
 
     // TODO extract variables
-    public static final BigDecimal FIBO_PERCENT_SIZE = new BigDecimal("3.5");
-    public static final BigDecimal BALANCE_PERCENT_TO_RISK = new BigDecimal("0.5");
+    public static final BigDecimal BALANCE_PERCENT_TO_RISK = new BigDecimal("10");
 
     private static long orderIdSequence = 1L;
     private static final Object orderIdSequenceLock = new Object();
@@ -75,6 +74,10 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
         return orderIdSequence;
     }
 
+    public Long getClientId() {
+        return clientId;
+    }
+
     public void setExchange(IExchange exchange) {
         this.exchange = exchange;
     }
@@ -117,7 +120,7 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
             result.add(longPosition);
         }
         if (shortPosition != null) {
-            result.add(longPosition);
+            result.add(shortPosition);
         }
         return result;
     }
@@ -127,16 +130,13 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
     // TODO inject EntryPoint DecisionMaker so it could became variable for Permutation in outside cycle
     @Override
     public void onNewPrice(String symbol, BigDecimal price, long timeInMillis, Boolean isSell) {
-        ZonedDateTime dateTime = Utils.parseDateTime(timeInMillis);
-
-        if (hourStartPrice.equals(BigDecimal.ZERO) || (/*dateTime.getHour() == 1 &&*/ dateTime.getMinute() == 1)) {
-            hourStartPrice = price;
-        }
+//        ZonedDateTime dateTime = Utils.parseDateTime(timeInMillis);
+//
+//        if (hourStartPrice.equals(BigDecimal.ZERO) || (/*dateTime.getHour() == 1 &&*/ dateTime.getMinute() == 1)) {
+//            hourStartPrice = price;
+//        }
 
         if (longPosition == null /*&& Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("99")) < 0*/) { // TODO some additional condition!
-            // TODO extract variables
-            List<MyOrder> fiboOrders = createFiboOpenOrders(price, FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.LONG);
-
             BigDecimal possibleAmount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
             if (possibleAmount.compareTo(MIN_ORDER_AMOUNT) <= 0) { // No Money !!!
                 System.out.println("Empty balance long! Take:" + getTakeProfitPercent() + ", Stop:" + getStopLossPercent()); // TODO
@@ -144,21 +144,18 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
                 balance = initialBalance;
                 return;
             }
-            if (fiboOrders.size() == 0) {
-                // it is impossible to execute Strategy on this params
-                return;
-            }
-            MyOrder initialMarketOrder = new MyOrder(getNextOrderId(),
-                    fiboOrders.get(0).getAmount(), price, false, MyOrder.Side.BUY, MyOrder.Status.NEW,
+
+            BigDecimal initialOrderPrice = price;
+
+            MyOrder initialOrder = new MyOrder(getNextOrderId(),
+                    MIN_ORDER_AMOUNT, price, false, MyOrder.Side.BUY, MyOrder.Status.NEW,
                     symbol, MyOrder.Type.MARKET, null);
 
-            exchange.placeOrder(getClientId(), initialMarketOrder);
-            longSideOrderIds.add(initialMarketOrder.getClientOrderId());
+            exchange.placeOrder(getClientId(), initialOrder);
+            longSideOrderIds.add(initialOrder.getClientOrderId());
         }
 
         if (shortPosition == null /*&& Utils.calcXOfYInPercents(price, hourStartPrice).compareTo(new BigDecimal("101")) > 0*/) { // TODO some additional condition!
-            List<MyOrder> fiboOrders = createFiboOpenOrders(price, FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.SHORT);
-
             BigDecimal possibleAmount = balance.divide(price, AMOUNT_PRECISION_BTC, RoundingMode.DOWN);
             if (possibleAmount.compareTo(MIN_ORDER_AMOUNT) <= 0) { // No Money !!!
                 System.out.println("Empty balance short! Take:" + getTakeProfitPercent() + ", Stop:" + getStopLossPercent()); // TODO
@@ -166,26 +163,15 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
                 balance = initialBalance;
                 return;
             }
-
-            if (fiboOrders.size() == 0) {
-                // it is impossible to execute Strategy on this params
-                return;
-            }
-
-            MyOrder initialMarketOrder = new MyOrder(getNextOrderId(),
-                    fiboOrders.get(0).getAmount(), price, false, MyOrder.Side.SELL, MyOrder.Status.NEW,
+            MyOrder initialOrder = new MyOrder(getNextOrderId(),
+                    MIN_ORDER_AMOUNT, price, false, MyOrder.Side.SELL, MyOrder.Status.NEW,
                     symbol, MyOrder.Type.MARKET, null);
 
-            exchange.placeOrder(getClientId(), initialMarketOrder);
-            shortSideOrderIds.add(initialMarketOrder.getClientOrderId());
+            exchange.placeOrder(getClientId(), initialOrder);
+            shortSideOrderIds.add(initialOrder.getClientOrderId());
         }
     }
 
-    // if (some condition) then open position (send market order)
-    // when position opened place Take Profit order and N-additional Open orders (Step is 1% / 3 Fibonacci + Martingale levels) and Stop Loss order (1.5%). Note: stop loss volume against balance. Open orders volume against stop loss.
-    // wait
-    // if (Take Profit order executed) cancel all position's orders -> position closed -> add closed position to Statistics
-    // if (additional Open order executed) recreate (cancel-create) Take Profit order and recreate Stop Loss order. And set new Entry Price/Update Time
     @Override
     public void onOrderUpdate(MyOrder updatedOrder) {
         // on first (market) order filled -> place take profit and stop loss
@@ -211,7 +197,7 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
 
                     initialLongEntryPrice = updatedOrder.getPrice();
 
-                    List<MyOrder> additionalOrders = createFiboOpenOrders(updatedOrder.getPrice(), FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.LONG);
+                    List<MyOrder> additionalOrders =  new ArrayList<>() ;//createFiboOpenOrders(updatedOrder.getPrice(), FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.LONG);
                     for (MyOrder additionalOrder : additionalOrders) {
                         longSideOrderIds.add(additionalOrder.getClientOrderId());
                         exchange.placeOrder(getClientId(), additionalOrder);
@@ -340,7 +326,7 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
                     initialShortEntryPrice = updatedOrder.getPrice();
 
                     //create, store and place additional and profit/stop orders
-                    List<MyOrder> additionalOrders = createFiboOpenOrders(updatedOrder.getPrice(), FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.SHORT);
+                    List<MyOrder> additionalOrders = new ArrayList<>(); // createFiboOpenOrders(updatedOrder.getPrice(), FIBO_PERCENT_SIZE, getTakeProfitPercent(), getStopLossPercent(), BALANCE_PERCENT_TO_RISK, balance, MyPosition.Side.SHORT);
                     for (MyOrder additionalOrder : additionalOrders) {
                         shortSideOrderIds.add(additionalOrder.getClientOrderId());
                         exchange.placeOrder(getClientId(), additionalOrder);
@@ -454,142 +440,6 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
         }
     }
 
-
-
-    // FIXME looks like we need to take Commission into account during additional (and maybe even during initial) orders creation
-    //                                                                            3-20% (variable)            0.3-1% (variable)             1-2% (variable)                    2-10% (variable)
-    public List<MyOrder> createFiboOpenOrders(BigDecimal marketPrice, BigDecimal fiboPercentSize, BigDecimal takeProfitPercent, BigDecimal fiboPercentPlusForStop, BigDecimal balancePercentToRisk, BigDecimal balance, MyPosition.Side positionSide) {
-        List<MyOrder> orders = new ArrayList<>();
-
-        List<BigDecimal> fiboLevelPrices = new ArrayList<>();
-        List<BigDecimal> fiboLevelAmounts = new ArrayList<>();
-        if (positionSide.equals(MyPosition.Side.LONG)) {
-            BigDecimal fiboPriceDiff = Utils.calcXPercentsFromY(fiboPercentSize, marketPrice); // 1000 is the 10% of 10000
-            BigDecimal fiboLastLevelPrice = marketPrice.subtract(fiboPriceDiff); // 10000 - 1000 = 9000
-            fiboLevelPrices.add(marketPrice); // 1
-//            if (   fiboPriceDiff.multiply(new BigDecimal("0.786"))) { // FIXME impossibility
-//
-//            }
-            fiboLevelPrices.add(fiboLastLevelPrice.add(fiboPriceDiff.multiply(new BigDecimal("0.786"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.add(fiboPriceDiff.multiply(new BigDecimal("0.618"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.add(fiboPriceDiff.multiply(new BigDecimal("0.5"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.add(fiboPriceDiff.multiply(new BigDecimal("0.382"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.add(fiboPriceDiff.multiply(new BigDecimal("0.236"))));
-            fiboLevelPrices.add(fiboLastLevelPrice); //7
-
-            BigDecimal amountCandidate = new BigDecimal("0.001"); // TODO change for other Symbols
-            BigDecimal amountStep = new BigDecimal("0.001");
-            while (true) {
-                if (amountCandidate.compareTo(new BigDecimal("50")) > 0) {
-                    System.out.println("long 50! , Take:" + getTakeProfitPercent() + ", Stop: " + getStopLossPercent());
-                    return new ArrayList<>();
-                }
-
-//                if (amountCandidate.multiply(marketPrice).divide(balance).compareTo(new BigDecimal("100")) > 0) {
-//                    return new ArrayList<>();
-//                }
-
-                fiboLevelAmounts.clear();
-
-                fiboLevelAmounts.add(amountCandidate);
-                BigDecimal amountSum = amountCandidate;
-                BigDecimal prevDesiredAveragePrice = fiboLevelPrices.get(0); // 10000
-                BigDecimal balanceSpent = amountCandidate.multiply(fiboLevelPrices.get(0));
-                //System.out.println(balanceSpent);
-                for (int i = 0; i < fiboLevelPrices.size() - 1; i++) { // iterate to pre last
-                    BigDecimal desiredAveragePrice = fiboLevelPrices.get(i).subtract(Utils.calcXPercentsFromY(takeProfitPercent, fiboLevelPrices.get(i))); // 0.3% of 10000 = 9970
-                    BigDecimal amountToAverage = Utils.calcAmountToAverageAtPrice(amountSum, prevDesiredAveragePrice, desiredAveragePrice, fiboLevelPrices.get(i + 1));
-                    fiboLevelAmounts.add(amountToAverage);
-                    amountSum = amountSum.add(amountToAverage);
-
-                    balanceSpent = balanceSpent.add(fiboLevelPrices.get(i + 1).multiply(amountToAverage));
-                    //System.out.println(balanceSpent);
-                    prevDesiredAveragePrice = desiredAveragePrice;
-                }
-
-                BigDecimal balanceReturnOnLoss = amountSum.multiply(marketPrice.subtract(Utils.calcXPercentsFromY(fiboPercentSize.add(fiboPercentPlusForStop), marketPrice)));
-
-                BigDecimal calculatedLoss = balanceSpent.subtract(balanceReturnOnLoss);
-                BigDecimal calculatedLossPercent = Utils.calcXOfYInPercents(calculatedLoss, balance);
-
-                if (calculatedLossPercent.compareTo(Utils.calcXPercentsFromY(balancePercentToRisk, balance)) > 0) {
-                    break;
-                }
-
-                orders.clear();
-                for (int i = 0; i < fiboLevelPrices.size(); i++) {
-                    MyOrder order = new MyOrder(getNextOrderId(), fiboLevelAmounts.get(i), fiboLevelPrices.get(i),   // TODO adjust Take Profit orders in INCREASE
-                            false, MyOrder.Side.BUY,
-                            MyOrder.Status.NEW, symbol, MyOrder.Type.LIMIT, null); // TODO get time from last AggTrade via #onNewPrice()
-                    orders.add(order);
-                }
-                amountCandidate = amountCandidate.add(amountStep);
-            }
-        } else { // SHORT
-            BigDecimal fiboPriceDiff = Utils.calcXPercentsFromY(fiboPercentSize, marketPrice); // 1000 is the 10% of 10000
-            BigDecimal fiboLastLevelPrice = marketPrice.add(fiboPriceDiff); // 10000 - 1000 = 9000
-            fiboLevelPrices.add(marketPrice); // 1
-            fiboLevelPrices.add(fiboLastLevelPrice.subtract(fiboPriceDiff.multiply(new BigDecimal("0.786"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.subtract(fiboPriceDiff.multiply(new BigDecimal("0.618"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.subtract(fiboPriceDiff.multiply(new BigDecimal("0.5"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.subtract(fiboPriceDiff.multiply(new BigDecimal("0.382"))));
-            fiboLevelPrices.add(fiboLastLevelPrice.subtract(fiboPriceDiff.multiply(new BigDecimal("0.236"))));
-            fiboLevelPrices.add(fiboLastLevelPrice); //7
-
-            BigDecimal amountStep = new BigDecimal("0.001");
-            BigDecimal amountCandidate = new BigDecimal("0.01"); // TODO change for other Symbols
-            while (true) {
-                if (amountCandidate.compareTo(new BigDecimal("50")) > 0) {
-                    System.out.println("short 50! , Take:" + getTakeProfitPercent() + ", Stop: " + getStopLossPercent());
-                    return new ArrayList<>();
-                }
-//                if (amountCandidate.multiply(marketPrice).divide(balance).compareTo(new BigDecimal("100")) > 0) {
-//                    return new ArrayList<>();
-//                }
-                fiboLevelAmounts.clear();
-
-                fiboLevelAmounts.add(amountCandidate);
-                BigDecimal amountSum = amountCandidate;
-                BigDecimal prevDesiredAveragePrice = fiboLevelPrices.get(0); // 10000
-                BigDecimal balanceSpent = amountCandidate.multiply(fiboLevelPrices.get(0));
-                //System.out.println(balanceSpent);
-                for (int i = 0; i < fiboLevelPrices.size() - 1; i++) { // iterate to pre last
-                    BigDecimal desiredAveragePrice = fiboLevelPrices.get(i).add(Utils.calcXPercentsFromY(takeProfitPercent, fiboLevelPrices.get(i))); // 0.3% of 10000 = 9970
-                    BigDecimal amountToAverage = Utils.calcAmountToAverageAtPrice(amountSum, prevDesiredAveragePrice, desiredAveragePrice, fiboLevelPrices.get(i + 1));
-                    fiboLevelAmounts.add(amountToAverage);
-                    amountSum = amountSum.add(amountToAverage);
-
-                    balanceSpent = balanceSpent.add(fiboLevelPrices.get(i + 1).multiply(amountToAverage));
-                    //System.out.println(balanceSpent);
-                    prevDesiredAveragePrice = desiredAveragePrice;
-                }
-
-                BigDecimal balanceReturnOnLoss = amountSum.multiply(marketPrice.add(Utils.calcXPercentsFromY(fiboPercentSize.add(fiboPercentPlusForStop), marketPrice)));
-
-                BigDecimal calculatedLoss = balanceReturnOnLoss.subtract(balanceSpent);
-                BigDecimal calculatedLossPercent = Utils.calcXOfYInPercents(calculatedLoss, balance);
-
-                if (calculatedLossPercent.compareTo(Utils.calcXPercentsFromY(balancePercentToRisk, balance)) > 0) {
-                    break;
-                }
-
-                orders.clear();
-                for (int i = 0; i < fiboLevelPrices.size(); i++) {
-                    MyOrder order = new MyOrder(getNextOrderId(), fiboLevelAmounts.get(i), fiboLevelPrices.get(i),   // TODO adjust Take Profit orders in INCREASE
-                            false, MyOrder.Side.SELL,
-                            MyOrder.Status.NEW, symbol, MyOrder.Type.LIMIT, null); // TODO get time from last AggTrade via #onNewPrice()
-                    //System.out.println(order);
-                    orders.add(order);
-                }
-                amountCandidate = amountCandidate.add(amountStep);
-            }
-        }
-
-
-
-        return orders;
-    }
-
     private MyOrder createTakeProfitOrder(MyPosition position, BigDecimal expectedProfit) {
         BigDecimal takeProfitPrice = MyPosition.Side.LONG.equals(position.getSide())
                 ? position.getEntryPrice().add(Utils.calcXPercentsFromY(takeProfitPercent, position.getEntryPrice()))
@@ -612,10 +462,6 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
                 MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.SELL: MyOrder.Side.BUY,
                 MyOrder.Status.NEW, symbol, MyOrder.Type.STOP_MARKET, null); // TODO get time from last AggTrade via #onNewPrice()
         return order;
-    }
-
-    public Long getClientId() {
-        return clientId;
     }
 
     /**
@@ -706,4 +552,5 @@ public class Bot4Range implements PriceListener, OrderUpdateListener {
             maxProfit = maxProfitCandidate;
         }
     }
+
 }

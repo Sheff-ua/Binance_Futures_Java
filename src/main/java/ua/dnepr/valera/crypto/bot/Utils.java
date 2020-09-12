@@ -14,6 +14,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class Utils {
+
+    public static final String HISTORY_FILE_HEADER = "id,price,qty,time,isBuyerMaker";
+    public static final String COMMA_DELIMITER = ",";
+    public static final String NEW_LINE_SEPARATOR = "\n";
+
     public static final int AMOUNT_PRECISION_BTC = 3;
 
     private static final DateTimeFormatter DATE_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");

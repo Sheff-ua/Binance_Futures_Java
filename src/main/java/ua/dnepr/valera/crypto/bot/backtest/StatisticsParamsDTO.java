@@ -4,6 +4,8 @@ import ua.dnepr.valera.crypto.bot.Utils;
 
 import java.math.BigDecimal;
 
+import static ua.dnepr.valera.crypto.bot.Utils.COMMA_DELIMITER;
+
 public class StatisticsParamsDTO implements Comparable<StatisticsParamsDTO> {
 
     private Statistics statistics;
@@ -82,4 +84,15 @@ public class StatisticsParamsDTO implements Comparable<StatisticsParamsDTO> {
                 (liquidatedCount > 0 ? ", liquidatedCount=" + liquidatedCount : "")
                 ;
     }
+
+    public static String toCSVHeader() {
+        return "BalanceDelta,TakeProfitPercent,StopLossPercent";
+    }
+
+    public String toCSV() {
+        return  Utils.formatPrice(statistics.balanceDelta()) + COMMA_DELIMITER +
+                takeProfitPercent  + COMMA_DELIMITER +
+                stopLossPercent;
+    }
+
 }

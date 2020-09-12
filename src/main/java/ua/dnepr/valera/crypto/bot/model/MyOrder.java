@@ -25,6 +25,8 @@ public class MyOrder {
 
     private Long updateTime;
 
+    private Long linkedOrderId;
+
     public MyOrder(Long clientOrderId, BigDecimal amount, BigDecimal price, boolean reduceOnly, Side side, Status status, String symbol, Type type, Long updateTime) {
         this.clientOrderId = clientOrderId;
         this.amount = amount;
@@ -79,6 +81,14 @@ public class MyOrder {
 
     public Long getUpdateTime() {
         return updateTime;
+    }
+
+    public Long getLinkedOrderId() {
+        return linkedOrderId;
+    }
+
+    public void setLinkedOrderId(Long linkedOrderId) {
+        this.linkedOrderId = linkedOrderId;
     }
 
     public enum Side {

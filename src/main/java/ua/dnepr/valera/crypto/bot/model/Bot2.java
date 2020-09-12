@@ -501,22 +501,22 @@ public class Bot2 implements PriceListener, OrderUpdateListener {
     }
 
     private MyOrder createStopLossOrder(MyPosition position, BigDecimal expectedLoss) {
-        // FIXME variant with fixed percent Stop Loss against New Entry Price
-        BigDecimal stopLossPrice = MyPosition.Side.LONG.equals(position.getSide())
-                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()))
-                : position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
+//        // FIXME variant with fixed percent Stop Loss against New Entry Price
+//        BigDecimal stopLossPrice = MyPosition.Side.LONG.equals(position.getSide())
+//                ? position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()))
+//                : position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
 
-//        // FIXME variant with fixed money Stop Loss against initial Expected Profit
-//        BigDecimal stopLossPrice;
-//        if (expectedLoss == null) {
-//            if (MyPosition.Side.LONG.equals(position.getSide())) {
-//                stopLossPrice = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
-//            } else {
-//                stopLossPrice = position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
-//            }
-//        } else { // Average
-//            stopLossPrice = Utils.calcNewStopForNewEntryAndAmount(position.getSide(), expectedLoss, position.getEntryPrice(), position.getAmount());
-//        }
+        // FIXME variant with fixed money Stop Loss against initial Expected Profit
+        BigDecimal stopLossPrice;
+        if (expectedLoss == null) {
+            if (MyPosition.Side.LONG.equals(position.getSide())) {
+                stopLossPrice = position.getEntryPrice().subtract(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
+            } else {
+                stopLossPrice = position.getEntryPrice().add(Utils.calcXPercentsFromY(stopLossPercent, position.getEntryPrice()));
+            }
+        } else { // Average
+            stopLossPrice = Utils.calcNewStopForNewEntryAndAmount(position.getSide(), expectedLoss, position.getEntryPrice(), position.getAmount());
+        }
 
         MyOrder order = new MyOrder(getNextOrderId(), position.getAmount(), stopLossPrice,true,
                 MyPosition.Side.LONG.equals(position.getSide()) ? MyOrder.Side.SELL: MyOrder.Side.BUY,
