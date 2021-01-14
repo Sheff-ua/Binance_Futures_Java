@@ -15,7 +15,7 @@ public class FiboProfitFindingExample {
         // 1
         MyOrder clientOrderFilled = new MyOrder(1L, new BigDecimal("0.001"), new BigDecimal("9999"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.MARKET, 10L);
+                "BTCUSDT", MyOrder.Type.MARKET, System.currentTimeMillis());
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.println("Initial market: " + longPosition);
         System.out.println("                Unrealized PnL at Price 10100:  " + Utils.formatPrice(longPosition.calcUnRealizedPNL(new BigDecimal("10100"))));
@@ -24,7 +24,7 @@ public class FiboProfitFindingExample {
         // 2
         clientOrderFilled = new MyOrder(2L, new BigDecimal("0.002"), new BigDecimal("9764"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 20L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 2000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 1 at 9764:  " + longPosition);
@@ -35,7 +35,7 @@ public class FiboProfitFindingExample {
         // 3
         clientOrderFilled = new MyOrder(3L, new BigDecimal("0.004"), new BigDecimal("9618"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 30L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 3000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 2 at 9618:  " + longPosition);
@@ -46,7 +46,7 @@ public class FiboProfitFindingExample {
         // 4
         clientOrderFilled = new MyOrder(4L, new BigDecimal("0.008"), new BigDecimal("9500"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 40L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 4000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 3 at 9500:  " + longPosition);
@@ -57,7 +57,7 @@ public class FiboProfitFindingExample {
         // 5
         clientOrderFilled = new MyOrder(5L, new BigDecimal("0.016"), new BigDecimal("9382"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 50L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 5000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 4 at 9382:  " + longPosition);
@@ -68,7 +68,7 @@ public class FiboProfitFindingExample {
         // 6
         clientOrderFilled = new MyOrder(6L, new BigDecimal("0.032"), new BigDecimal("9214"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 60L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 6000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 5 at 9214:  " + longPosition);
@@ -78,7 +78,7 @@ public class FiboProfitFindingExample {
         // 7
         clientOrderFilled = new MyOrder(7L, new BigDecimal("0.064"), new BigDecimal("9000"),
                 false, MyOrder.Side.BUY, MyOrder.Status.FILLED,
-                "BTCUSDT", MyOrder.Type.LIMIT, 70L);
+                "BTCUSDT", MyOrder.Type.LIMIT, 7000L);
 
         longPosition.addOrderToHistory(clientOrderFilled);
         System.out.print("Avg 6 at 9000:  " + longPosition);

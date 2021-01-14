@@ -30,8 +30,8 @@ public class HistoricalDataSpotMultiThreadRetriever {
 
     private static int THREAD_COUNT_SPOT = 10;
     private static int THREAD_COUNT_FEATUERES = 20;
-    private static int CALL_RATE_LIMIT_SPOT = 1180; // 1200
-    private static int CALL_RATE_LIMIT_FEATURES = 2360; // 2400
+    private static int CALL_RATE_LIMIT_SPOT = 1000; // 1200
+    private static int CALL_RATE_LIMIT_FEATURES = 1000; // 2400
     private static String DIRECTORY = "c:\\Projects\\Crypto\\production_history\\";
 
     private static final BigDecimal REDUCE_PERCENT = new BigDecimal("0.005");
@@ -170,7 +170,7 @@ public class HistoricalDataSpotMultiThreadRetriever {
         //String[] symbols = {"ETHBTC", "GRSBTC", "EOSBTC", "BNBBTC"};
         //String[] symbols = {"BCHUSDT","LTCUSDT","TRXUSDT","ADAUSDT","XMRUSDT","XLMUSDT","DASHUSDT","ZECUSDT","XTZUSDT","ATOMUSDT","ONTUSDT","IOTAUSDT","BATUSDT","VETUSDT","NEOUSDT","IOSTUSDT"};
         String[] symbols = {"BTCUSDT"};
-        int proceedId = 106829695; // TODO set to 1 if no need
+        int proceedId = 113827703; // TODO set to 1 if no need
 
         for (String symbol : symbols) {
             RequestOptions options = new RequestOptions();

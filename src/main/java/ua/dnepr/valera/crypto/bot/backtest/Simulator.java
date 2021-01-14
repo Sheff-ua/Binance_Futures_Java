@@ -19,7 +19,7 @@ public class Simulator {
 
     private static String DIRECTORY = "c:\\Projects\\Crypto\\backtest_history\\";
     private HashMap<Long, List<Long>> perfTest = new HashMap<>();
-    private static int EXCHANGE_THREAD_COUNT = 4; // FIXME detect optimal value, 6, 10 looks good for now
+    private static int EXCHANGE_THREAD_COUNT = 8; // FIXME detect optimal value, 6, 10 looks good for now
 
     private static Long clientIdSequence = 1L;
     private static BigDecimal initialBalancePerBot = new BigDecimal("1000");
